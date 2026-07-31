@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>the party — live</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,800&family=Instrument+Sans:wght@500&display=swap" rel="stylesheet">
+<script src="/static/cytoscape.min.js"></script>
+<style>
+*{box-sizing:border-box;margin:0}
+html,body{height:100%;overflow:hidden}
+body{background:
+  radial-gradient(1200px 700px at 80% -10%, rgba(255,77,157,.16), transparent 60%),
+  radial-gradient(1000px 700px at 0% 110%, rgba(89,224,255,.12), transparent 55%),
+  #0a0714;color:#f5eeff;font-family:"Instrument Sans",system-ui,sans-serif}
+.top{position:fixed;top:0;left:0;right:0;z-index:5;display:flex;justify-content:space-between;
+  align-items:center;padding:28px 40px;pointer-events:none}
+h1{font-family:"Bricolage Grotesque";font-weight:800;font-size:clamp(30px,4vw,56px);line-height:1;
+  background:linear-gradient(100deg,#ff4d9d,#ffd36b 55%,#59e0ff);
+  -webkit-background-clip:text;background-clip:text;color:transparent}
+.stat{text-align:right;font-size:clamp(14px,1.4vw,20px);color:#a892d0}
+.stat b{color:#f5eeff;font-size:1.6em;font-family:"Bricolage Grotesque"}
+#cy{position:fixed;inset:0}
+</style>
+</head>
+<body>
+<div class="top">
+  <h1>the&nbsp;party</h1>
+  <div class="stat"><b id="np">0</b> here &nbsp;·&nbsp; <b id="ne">0</b> connections</div>
+</div>
+<div id="cy"></div>
+<script>
+let cy=null;
+function build(els){
+  if(!cy){
+    cy=cytoscape({container:document.getElementById("cy"),elements:els,minZoom:.3,maxZoom:2.5,
+      style:[
+        {selector:"node",style:{"background-color":"#ff4d9d","label":"data(label)","color":"#f5eeff",
+          "font-family":"Bricolage Grotesque","font-size":22,"text-valign":"bottom","text-margin-y":10,
+          "width":42,"height":42,"border-width":3,"border-color":"#150b28",
+          "text-outline-color":"#0a0714","text-outline-width":4}},
+        {selector:"edge",style:{"width":3.5,"line-color":"#59e0ff","opacity":.6,"curve-style":"straight"}}
+      ],
+      layout:{name:"cose",animate:true,padding:80}});
+  }else{
+    cy.json({elements:els});
+    cy.layout({name:"cose",animate:true,animationDuration:600,padding:80}).run();
+  }
+}
+async function load(){
+  const s=await (await fetch("/state")).json();
+  document.getElementById("np").textContent=s.guests.length;
+  document.getElementById("ne").textContent=s.edges.length;
+  const els=s.guests.map(p=>({data:{id:"n"+p.id,label:p.name}}))
+    .concat(s.edges.map(e=>({data:{id:"e"+e.a+"_"+e.b,source:"n"+e.a,target:"n"+e.b}})));
+  build(els);
+}
+load();
+setInterval(load,2500);
+</script>
+</body>
+</html>

@@ -1,0 +1,113 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>the party — admin</title>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,800&family=Instrument+Sans:wght@400;600&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#0a0714;--card:#1b1030;--line:#2c1c47;--ink:#f5eeff;--muted:#a892d0;--pink:#ff4d9d;--gold:#ffd36b;--grn:#7CF6A0}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:"Instrument Sans",system-ui,sans-serif;padding:24px 16px 60px}
+.wrap{max-width:620px;margin:0 auto}
+h1{font-family:"Bricolage Grotesque";font-size:34px;margin:0 0 4px;
+  background:linear-gradient(100deg,var(--pink),var(--gold));-webkit-background-clip:text;background-clip:text;color:transparent}
+.sub{color:var(--muted);margin:0 0 24px;font-size:14px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:18px;margin-bottom:16px}
+h2{font-family:"Bricolage Grotesque";font-size:18px;margin:0 0 14px}
+.g{display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--line)}
+.g:last-child{border-bottom:0}
+.g .nm{flex:1;font-weight:600;font-size:16px}
+.g .cc{color:var(--muted);font-size:12px}
+.toggle{position:relative;width:52px;height:30px;flex:none;border:0;border-radius:999px;cursor:pointer;
+  background:#2a1540;transition:.15s}
+.toggle.on{background:var(--grn)}
+.toggle::after{content:"";position:absolute;top:3px;left:3px;width:24px;height:24px;border-radius:50%;
+  background:#fff;transition:.15s}
+.toggle.on::after{transform:translateX(22px)}
+input,button.add,button.big{font-family:inherit;font-size:15px}
+.row{display:flex;gap:8px;margin-bottom:10px}
+input{flex:1;background:#120a22;border:1px solid var(--line);border-radius:11px;color:var(--ink);padding:11px 12px}
+input.lbl{flex:0 0 34%}
+input:focus{outline:none;border-color:var(--pink)}
+.crow .x{flex:0 0 42px;background:#2a1540;border:1px solid var(--line);color:var(--muted);border-radius:11px;cursor:pointer;font-size:18px}
+button.add{background:none;border:1px dashed var(--line);color:var(--muted);border-radius:11px;padding:11px;width:100%;cursor:pointer;margin-bottom:12px}
+button.big{border:0;border-radius:12px;padding:14px;width:100%;font-weight:800;color:#120a1f;
+  background:linear-gradient(100deg,var(--pink),var(--gold));cursor:pointer}
+.err{color:#ff7a9c;font-size:13px}
+.links{color:var(--muted);font-size:13px;margin-top:20px}
+.links a{color:var(--gold)}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>party admin</h1>
+  <p class="sub">Add guests, control who's <b>present</b>. Only present guests appear in the app + graph.</p>
+
+  <div class="card">
+    <h2>guests</h2>
+    <div id="list"><p class="cc">loading…</p></div>
+  </div>
+
+  <div class="card">
+    <h2>add a guest</h2>
+    <div class="row"><input id="name" placeholder="name"></div>
+    <div id="crows"></div>
+    <button class="add" id="addrow">+ add contact info</button>
+    <button class="big" id="addbtn">add guest</button>
+    <p class="err" id="err"></p>
+  </div>
+
+  <p class="links">Guest link: <a href="/" target="_blank">/</a> &nbsp;·&nbsp; Wall view: <a href="/wall" target="_blank">/wall</a></p>
+</div>
+
+<script>
+const key = new URLSearchParams(location.search).get("key") || "";
+const $ = s => document.querySelector(s);
+const q = p => p + (p.includes("?") ? "&" : "?") + "key=" + encodeURIComponent(key);
+
+async function load(){
+  const r = await fetch(q("/admin/guests"));
+  if(!r.ok){ $("#list").innerHTML = '<p class="err">Bad admin key — check the URL.</p>'; return; }
+  const gs = await r.json();
+  const l = $("#list");
+  if(!gs.length){ l.innerHTML = '<p class="cc">No guests yet — add some below.</p>'; return; }
+  l.innerHTML = "";
+  for(const g of gs){
+    const row = document.createElement("div"); row.className="g";
+    const cc = g.contacts.length ? g.contacts.length + " contact" + (g.contacts.length>1?"s":"") : "no contacts";
+    row.innerHTML = '<div><div class="nm">'+esc(g.name)+'</div><div class="cc">'+cc+'</div></div>' +
+      '<div style="flex:1"></div><button class="toggle'+(g.present?" on":"")+'"></button>';
+    row.querySelector(".toggle").onclick = async (e) => {
+      const on = !g.present;
+      await fetch(q("/admin/present/"+g.id), {method:"POST",headers:{"Content-Type":"application/json"},
+        body:JSON.stringify({present:on})});
+      load();
+    };
+    l.appendChild(row);
+  }
+}
+function crowEl(){
+  const d=document.createElement("div"); d.className="row crow";
+  d.innerHTML='<input class="lbl" placeholder="label (phone/insta…)"><input class="val" placeholder="value"><button class="x">×</button>';
+  d.querySelector(".x").onclick=()=>d.remove();
+  return d;
+}
+$("#addrow").onclick=()=>$("#crows").appendChild(crowEl());
+$("#addbtn").onclick=async()=>{
+  const name=$("#name").value.trim();
+  if(!name){ $("#err").textContent="name required"; return; }
+  const contacts=[...$("#crows").querySelectorAll(".crow")].map(r=>({
+    label:r.querySelector(".lbl").value.trim(),value:r.querySelector(".val").value.trim()}))
+    .filter(c=>c.value);
+  const r=await fetch(q("/admin/guest"),{method:"POST",headers:{"Content-Type":"application/json"},
+    body:JSON.stringify({name,contacts})});
+  if(!r.ok){ $("#err").textContent="failed (bad key?)"; return; }
+  $("#name").value=""; $("#crows").innerHTML=""; $("#err").textContent="";
+  load();
+};
+function esc(s){return String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]))}
+load();
+</script>
+</body>
+</html>
