@@ -44,6 +44,8 @@ h1{font-family:"Bricolage Grotesque",sans-serif;font-weight:800;font-size:clamp(
 .pickbtn:active{transform:scale(.97);border-color:var(--pink)}
 .dot{width:10px;height:10px;border-radius:50%;flex:none;
   background:radial-gradient(circle at 30% 30%,#fff,var(--pink));box-shadow:var(--glow) var(--pink)}
+.pickbtn.away{opacity:.55}
+.pickbtn.away .dot{background:#4a3a68;box-shadow:none}
 
 /* tabs */
 nav{position:fixed;left:0;right:0;bottom:0;z-index:10;
@@ -166,23 +168,27 @@ function chipHref(label, val){
 }
 
 async function load(){
-  const r = await fetch("/state" + (me ? "?me="+me : ""));
+  if(!me){ return renderPick(); }
+  const r = await fetch("/state?me=" + me);
   state = await r.json();
-  if(!me){ renderPick(); }
-  else { renderMeTag(); renderPeople(); renderGraph(); }
+  renderMeTag(); renderPeople(); renderGraph();
 }
 
 // ---- identity ----
-function renderPick(){
+async function renderPick(){
   $("#pick").hidden = false; $("#app").hidden = true; $("#nav").hidden = true;
   $("#metag").hidden = true;
+  const roster = await (await fetch("/roster")).json();
   const g = $("#pickgrid"); g.innerHTML = "";
-  if(!state.guests.length){ g.innerHTML = '<p class="empty">No one is checked in yet — hang tight!</p>'; return; }
-  for(const p of state.guests){
+  if(!roster.length){ g.innerHTML = '<p class="empty">No guests yet — hang tight!</p>'; return; }
+  for(const p of roster){
     const b = document.createElement("button");
-    b.className = "pickbtn";
+    b.className = "pickbtn" + (p.present ? "" : " away");
     b.innerHTML = '<span class="dot"></span>' + esc(p.name);
-    b.onclick = () => { me = p.id; localStorage.setItem("me_id", me); load(); };
+    b.onclick = async () => {
+      await fetch("/checkin/" + p.id, {method:"POST"});  // mark yourself here
+      me = p.id; localStorage.setItem("me_id", me); load();
+    };
     g.appendChild(b);
   }
 }

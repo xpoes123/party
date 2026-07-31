@@ -84,6 +84,24 @@ def admin():
 
 
 # ---- state ----
+@app.get("/roster")
+def roster():
+    """Everyone (present or not), for the identity picker. No contacts."""
+    with closing(db()) as conn:
+        rows = conn.execute("SELECT id, name, present FROM guests ORDER BY name").fetchall()
+    return [{"id": r["id"], "name": r["name"], "present": bool(r["present"])} for r in rows]
+
+
+@app.post("/checkin/{gid}")
+def checkin(gid: int):
+    """Guest self-check-in — marks themselves present. Trust-based, no auth."""
+    with closing(db()) as conn, conn:
+        cur = conn.execute("UPDATE guests SET present=1 WHERE id=?", (gid,))
+        if cur.rowcount == 0:
+            raise HTTPException(404, "no such guest")
+    return {"ok": True}
+
+
 @app.get("/state")
 def state(me: int | None = None):
     """Present guests + edges. Contacts only revealed for `me`'s connections."""

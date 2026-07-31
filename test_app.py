@@ -59,6 +59,13 @@ def test():
     s = c.get("/state").json()
     assert all(x["name"] != "Bob" for x in s["guests"])
 
+    # roster lists everyone incl. away; self-checkin brings bob back
+    roster = {g["name"]: g for g in c.get("/roster").json()}
+    assert roster["Bob"]["present"] is False
+    assert c.post(f"/checkin/{bob}").status_code == 200
+    assert any(x["name"] == "Bob" for x in c.get("/state").json()["guests"])
+    assert c.post("/checkin/9999").status_code == 404
+
     # admin key enforced
     assert c.get("/admin/guests").status_code == 403
 
