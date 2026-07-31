@@ -40,10 +40,15 @@ def init():
             CREATE TABLE IF NOT EXISTS edges (
                 a INTEGER NOT NULL,
                 b INTEGER NOT NULL,
+                weight INTEGER NOT NULL DEFAULT 50,
                 PRIMARY KEY (a, b)
             );
             """
         )
+        # migrate older DBs that predate the weight column
+        cols = [r["name"] for r in conn.execute("PRAGMA table_info(edges)")]
+        if "weight" not in cols:
+            conn.execute("ALTER TABLE edges ADD COLUMN weight INTEGER NOT NULL DEFAULT 50")
 
 
 init()
@@ -111,8 +116,8 @@ def state(me: int | None = None):
         ).fetchall()
         present_ids = {g["id"] for g in guests}
         edges = [
-            {"a": r["a"], "b": r["b"]}
-            for r in conn.execute("SELECT a, b FROM edges").fetchall()
+            {"a": r["a"], "b": r["b"], "weight": r["weight"]}
+            for r in conn.execute("SELECT a, b, weight FROM edges").fetchall()
             if r["a"] in present_ids and r["b"] in present_ids
         ]
     # who is `me` connected to?
@@ -142,8 +147,10 @@ def state(me: int | None = None):
 async def connect(request: Request):
     body = await request.json()
     a, b = pair(body["a"], body["b"])
+    w = max(0, min(100, int(body.get("weight", 50))))
     with closing(db()) as conn, conn:
-        conn.execute("INSERT OR IGNORE INTO edges (a, b) VALUES (?, ?)", (a, b))
+        # OR IGNORE: a live connect never clobbers a preseeded weight
+        conn.execute("INSERT OR IGNORE INTO edges (a, b, weight) VALUES (?, ?, ?)", (a, b, w))
     return {"ok": True}
 
 
@@ -215,6 +222,36 @@ async def admin_present(gid: int, request: Request):
         cur = conn.execute("UPDATE guests SET present=? WHERE id=?", (present, gid))
         if cur.rowcount == 0:
             raise HTTPException(404, "no such guest")
+    return {"ok": True}
+
+
+@app.get("/admin/edges")
+def admin_edges(request: Request):
+    require_admin(request)
+    with closing(db()) as conn:
+        rows = conn.execute("SELECT a, b, weight FROM edges").fetchall()
+    return [{"a": r["a"], "b": r["b"], "weight": r["weight"]} for r in rows]
+
+
+@app.post("/admin/edges/set")
+async def admin_set_edges(request: Request):
+    """Replace all of one person's connections. body: {person, links:[{other, weight}]}.
+    weight 0 (or missing) removes that edge; >0 upserts it."""
+    require_admin(request)
+    body = await request.json()
+    person = int(body["person"])
+    with closing(db()) as conn, conn:
+        for link in body.get("links", []):
+            a, b = pair(person, link["other"])
+            w = max(0, min(100, int(link.get("weight", 0))))
+            if w > 0:
+                conn.execute(
+                    "INSERT INTO edges (a, b, weight) VALUES (?, ?, ?) "
+                    "ON CONFLICT(a, b) DO UPDATE SET weight=excluded.weight",
+                    (a, b, w),
+                )
+            else:
+                conn.execute("DELETE FROM edges WHERE a=? AND b=?", (a, b))
     return {"ok": True}
 
 

@@ -33,7 +33,8 @@ h1{font-family:"Bricolage Grotesque";font-weight:800;font-size:clamp(30px,4vw,56
 <div id="cy"></div>
 <script>
 let cy=null;
-function build(els){
+const IEL = e => 300 - (e.data("weight")||50)*2;
+function build(els, animate){
   if(!cy){
     cy=cytoscape({container:document.getElementById("cy"),elements:els,minZoom:.3,maxZoom:2.5,
       style:[
@@ -41,12 +42,13 @@ function build(els){
           "font-family":"Bricolage Grotesque","font-size":22,"text-valign":"bottom","text-margin-y":10,
           "width":42,"height":42,"border-width":3,"border-color":"#150b28",
           "text-outline-color":"#0a0714","text-outline-width":4}},
-        {selector:"edge",style:{"width":3.5,"line-color":"#59e0ff","opacity":.6,"curve-style":"straight"}}
+        {selector:"edge",style:{"width":"mapData(weight,0,100,2,7)","line-color":"#59e0ff",
+          "opacity":"mapData(weight,0,100,.4,.9)","curve-style":"straight"}}
       ],
-      layout:{name:"cose",animate:true,padding:80}});
+      layout:{name:"cose",animate:true,padding:80,idealEdgeLength:IEL}});
   }else{
     cy.json({elements:els});
-    cy.layout({name:"cose",animate:true,animationDuration:600,padding:80}).run();
+    cy.layout({name:"cose",animate:true,animationDuration:600,padding:80,idealEdgeLength:IEL}).run();
   }
 }
 async function load(){
@@ -54,7 +56,7 @@ async function load(){
   document.getElementById("np").textContent=s.guests.length;
   document.getElementById("ne").textContent=s.edges.length;
   const els=s.guests.map(p=>({data:{id:"n"+p.id,label:p.name}}))
-    .concat(s.edges.map(e=>({data:{id:"e"+e.a+"_"+e.b,source:"n"+e.a,target:"n"+e.b}})));
+    .concat(s.edges.map(e=>({data:{id:"e"+e.a+"_"+e.b,source:"n"+e.a,target:"n"+e.b,weight:e.weight}})));
   build(els);
 }
 load();

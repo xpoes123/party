@@ -246,9 +246,15 @@ async function act(path, other){
 }
 
 // ---- graph ----
+const LAYOUT = {name:"cose", animate:false, padding:30,
+  idealEdgeLength: e => 240 - (e.data("weight")||50)*1.6};
+function graphEls(){
+  return state.guests.map(p=>({data:{id:"n"+p.id, label:p.name, me:p.id===me}}))
+    .concat(state.edges.map(e=>({data:{
+      id:"e"+e.a+"_"+e.b, source:"n"+e.a, target:"n"+e.b, weight:e.weight}})));
+}
 function renderGraph(){
-  const els = state.guests.map(p=>({data:{id:"n"+p.id, label:p.name, me:p.id===me}}))
-    .concat(state.edges.map(e=>({data:{id:"e"+e.a+"_"+e.b, source:"n"+e.a, target:"n"+e.b}})));
+  const els = graphEls();
   if(!cy){
     cy = cytoscape({
       container:$("#cy"), elements:els, minZoom:.3, maxZoom:2.5,
@@ -260,13 +266,14 @@ function renderGraph(){
           "border-width":2,"border-color":"#1b1030","text-outline-color":"#0a0714","text-outline-width":3}},
         {selector:'node[?me]',style:{"background-color":"#ffd36b","width":40,"height":40,
           "border-color":"#ff4d9d","border-width":3}},
-        {selector:"edge",style:{"width":2.5,"line-color":"#59e0ff","opacity":.55,"curve-style":"straight"}}
+        {selector:"edge",style:{"width":"mapData(weight,0,100,1.5,6)","line-color":"#59e0ff",
+          "opacity":"mapData(weight,0,100,.35,.85)","curve-style":"straight"}}
       ],
-      layout:{name:"cose", animate:false, padding:30}
+      layout:LAYOUT
     });
   } else {
     cy.json({elements:els});
-    cy.layout({name:"cose", animate:false, padding:30}).run();
+    cy.layout(LAYOUT).run();
   }
 }
 

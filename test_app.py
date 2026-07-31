@@ -54,6 +54,19 @@ def test():
     c.post("/disconnect", json={"a": alice, "b": bob})
     assert len(c.get("/state").json()["edges"]) == 1  # alice-carol remains
 
+    # edges carry a default weight; admin can bulk-set weights (0 removes)
+    assert c.get("/state").json()["edges"][0]["weight"] == 50
+    c.post("/admin/edges/set", json={"person": alice, "links": [
+        {"other": bob, "weight": 80}, {"other": carol, "weight": 0}]}, headers=AK)
+    edges = {tuple(sorted((e["a"], e["b"]))): e["weight"] for e in c.get("/state").json()["edges"]}
+    assert edges == {tuple(sorted((alice, bob))): 80}  # carol dropped, alice-bob @80
+    # re-setting overwrites the weight
+    c.post("/admin/edges/set", json={"person": alice,
+        "links": [{"other": bob, "weight": 30}]}, headers=AK)
+    assert c.get("/state").json()["edges"][0]["weight"] == 30
+    assert c.get("/admin/edges", headers=AK).status_code == 200
+    assert c.get("/admin/edges").status_code == 403
+
     # presence: hide bob -> drops from state and his edges vanish
     c.post(f"/admin/present/{bob}", json={"present": False}, headers=AK)
     s = c.get("/state").json()
