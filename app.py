@@ -58,7 +58,7 @@ def pair(a, b):
 
 
 def require_admin(request: Request):
-    if request.query_params.get("key") != ADMIN_KEY:
+    if request.headers.get("x-admin-key") != ADMIN_KEY:
         raise HTTPException(403, "bad admin key")
 
 
@@ -74,9 +74,13 @@ def wall():
 
 
 @app.get("/admin")
-def admin(request: Request):
-    require_admin(request)
-    return FileResponse(os.path.join(STATIC, "admin.html"))
+def admin():
+    # page itself is harmless HTML; the admin API endpoints are what's gated
+    # (via X-Admin-Key header). no-referrer so the ?key= bootstrap can't leak.
+    return FileResponse(
+        os.path.join(STATIC, "admin.html"),
+        headers={"Referrer-Policy": "no-referrer"},
+    )
 
 
 # ---- state ----

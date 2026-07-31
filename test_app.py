@@ -12,8 +12,11 @@ from fastapi.testclient import TestClient
 c = TestClient(app.app)
 
 
+AK = {"X-Admin-Key": "testkey"}
+
+
 def add(name, contacts=None):
-    r = c.post("/admin/guest?key=testkey", json={"name": name, "contacts": contacts or []})
+    r = c.post("/admin/guest", json={"name": name, "contacts": contacts or []}, headers=AK)
     assert r.status_code == 200, r.text
     return r.json()["id"]
 
@@ -52,7 +55,7 @@ def test():
     assert len(c.get("/state").json()["edges"]) == 1  # alice-carol remains
 
     # presence: hide bob -> drops from state and his edges vanish
-    c.post(f"/admin/present/{bob}?key=testkey", json={"present": False})
+    c.post(f"/admin/present/{bob}", json={"present": False}, headers=AK)
     s = c.get("/state").json()
     assert all(x["name"] != "Bob" for x in s["guests"])
 

@@ -62,12 +62,17 @@ button.big{border:0;border-radius:12px;padding:14px;width:100%;font-weight:800;c
 </div>
 
 <script>
-const key = new URLSearchParams(location.search).get("key") || "";
+// bootstrap the key from ?key= once, stash it in sessionStorage, then scrub
+// the URL so it doesn't linger in history / referrer.
+const urlKey = new URLSearchParams(location.search).get("key");
+if(urlKey){ sessionStorage.setItem("admin_key", urlKey);
+  history.replaceState(null, "", location.pathname); }
+const key = sessionStorage.getItem("admin_key") || "";
 const $ = s => document.querySelector(s);
-const q = p => p + (p.includes("?") ? "&" : "?") + "key=" + encodeURIComponent(key);
+const H = {"Content-Type":"application/json","X-Admin-Key":key};
 
 async function load(){
-  const r = await fetch(q("/admin/guests"));
+  const r = await fetch("/admin/guests", {headers:{"X-Admin-Key":key}});
   if(!r.ok){ $("#list").innerHTML = '<p class="err">Bad admin key — check the URL.</p>'; return; }
   const gs = await r.json();
   const l = $("#list");
@@ -80,7 +85,7 @@ async function load(){
       '<div style="flex:1"></div><button class="toggle'+(g.present?" on":"")+'"></button>';
     row.querySelector(".toggle").onclick = async (e) => {
       const on = !g.present;
-      await fetch(q("/admin/present/"+g.id), {method:"POST",headers:{"Content-Type":"application/json"},
+      await fetch("/admin/present/"+g.id, {method:"POST",headers:H,
         body:JSON.stringify({present:on})});
       load();
     };
@@ -100,7 +105,7 @@ $("#addbtn").onclick=async()=>{
   const contacts=[...$("#crows").querySelectorAll(".crow")].map(r=>({
     label:r.querySelector(".lbl").value.trim(),value:r.querySelector(".val").value.trim()}))
     .filter(c=>c.value);
-  const r=await fetch(q("/admin/guest"),{method:"POST",headers:{"Content-Type":"application/json"},
+  const r=await fetch("/admin/guest",{method:"POST",headers:H,
     body:JSON.stringify({name,contacts})});
   if(!r.ok){ $("#err").textContent="failed (bad key?)"; return; }
   $("#name").value=""; $("#crows").innerHTML=""; $("#err").textContent="";
