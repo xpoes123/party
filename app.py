@@ -575,22 +575,64 @@ async def music_control(request: Request):
     return {"ok": True}
 
 
+_now_cache = {"t": 0.0, "v": None}
+
+
 @app.get("/music/now")
 async def music_now():
-    """Now-playing + up-next for the wall. Empty (not error) when nothing's on."""
+    """Now-playing + up-next for the wall/phones. Cached ~3s so many pollers
+    (every guest on the songs tab + the wall) collapse into one Spotify call,
+    keeping us well under the rate limit."""
     if not kv_get("spotify_refresh"):
         return {"connected": False, "playing": None, "queue": []}
+    if _now_cache["v"] is not None and time.time() - _now_cache["t"] < 3:
+        return _now_cache["v"]
+    try:
+        tok = await user_token()
+        async with httpx.AsyncClient(timeout=10) as cx:
+            r = await cx.get("https://api.spotify.com/v1/me/player/queue",
+                             headers={"Authorization": "Bearer " + tok})
+        if r.status_code == 200:
+            j = r.json()
+            cur = j.get("currently_playing")
+            v = {"connected": True, "playing": _track(cur) if cur else None,
+                 "queue": [_track(t) for t in (j.get("queue") or [])[:8]]}
+        else:
+            v = _now_cache["v"] or {"connected": True, "playing": None, "queue": []}
+    except Exception:
+        v = _now_cache["v"] or {"connected": True, "playing": None, "queue": []}
+    _now_cache["t"], _now_cache["v"] = time.time(), v
+    return v
+
+
+@app.post("/music/reorder")
+async def music_reorder(request: Request):
+    """Reorder hack: Spotify has no queue-reorder endpoint, so replace playback
+    with [current-song, *desired-order] via PUT play, resuming the current song
+    at its position. body: {uris:[...]} = the desired up-next order."""
+    require_admin(request)
+    uris = [u for u in (await request.json()).get("uris", [])
+            if isinstance(u, str) and u.startswith("spotify:track:")]
     tok = await user_token()
     async with httpx.AsyncClient(timeout=10) as cx:
-        r = await cx.get("https://api.spotify.com/v1/me/player/queue",
-                         headers={"Authorization": "Bearer " + tok})
-    if r.status_code != 200:
-        return {"connected": True, "playing": None, "queue": []}
-    j = r.json()
-    cur = j.get("currently_playing")
-    return {"connected": True,
-            "playing": _track(cur) if cur else None,
-            "queue": [_track(t) for t in (j.get("queue") or [])[:8]]}
+        pb = await cx.get("https://api.spotify.com/v1/me/player",
+                          headers={"Authorization": "Bearer " + tok})
+        cur, pos = None, 0
+        if pb.status_code == 200 and pb.content:
+            j = pb.json()
+            cur = (j.get("item") or {}).get("uri")
+            pos = j.get("progress_ms") or 0
+        body = {"uris": ([cur] if cur else []) + uris, "position_ms": pos}
+        if not body["uris"]:
+            raise HTTPException(400, "nothing to play")
+        r = await cx.put("https://api.spotify.com/v1/me/player/play",
+                         json=body, headers={"Authorization": "Bearer " + tok})
+    if r.status_code == 404:
+        raise HTTPException(409, "no active device")
+    if r.status_code not in (200, 204):
+        raise HTTPException(502, f"reorder failed: {r.text[:150]}")
+    _now_cache["t"] = 0.0  # bust cache so the new order shows immediately
+    return {"ok": True}
 
 
 # ---- autopilot: keep music flowing from a base playlist ----

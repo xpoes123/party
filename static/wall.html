@@ -23,15 +23,10 @@ body{background:
 <iframe id="frame" src="/scene/graph"></iframe>
 <div class="dots" id="dots"></div>
 <script>
+// add more scenes here as we build them
 const ALL=[
-  {name:"graph", url:"/scene/graph", secs:22, always:true},
+  {name:"music", url:"/scene/songs", secs:22, always:true},
   {name:"blobs", url:"/scene/blobs", secs:26, always:true},
-  {name:"poll",  url:"/scene/poll",  secs:20, check:async()=>(await (await fetch("/polls")).json()).length>0},
-  {name:"songs", url:"/scene/songs", secs:18, check:async()=>{
-    const m=await (await fetch("/music/now")).json();
-    if(m.playing || (m.queue && m.queue.length)) return true;
-    return (await (await fetch("/songs")).json()).length>0;
-  }},
 ];
 const frame=document.getElementById("frame"), dotsEl=document.getElementById("dots");
 let deck=[], i=0, timer=null;

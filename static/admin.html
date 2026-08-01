@@ -6,327 +6,141 @@
 <title>the party — admin</title>
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
-:root{--bg:#1a1b26;--card:#1f2335;--card2:#24283b;--line:#2a2f45;--ink:#c0caf5;--ink2:#a9b1d6;--muted:#565f89;--faint:#414868;--blue:#7aa2f7;--purple:#bb9af7;--green:#9ece6a;--red:#f7768e;--pink:#7aa2f7;--gold:#e0af68;--grn:#9ece6a;--display:"Space Grotesk",system-ui,sans-serif;--body:"Inter",system-ui,sans-serif;--mono:"JetBrains Mono",ui-monospace,monospace}
+:root{--bg:#1a1b26;--card:#1f2335;--card2:#24283b;--line:#2a2f45;
+  --ink:#c0caf5;--ink2:#a9b1d6;--muted:#565f89;--faint:#414868;
+  --blue:#7aa2f7;--purple:#bb9af7;--green:#9ece6a;--red:#f7768e;
+  --display:"Space Grotesk",system-ui,sans-serif;--body:"Inter",system-ui,sans-serif;--mono:"JetBrains Mono",ui-monospace,monospace;
+  --r:8px;--r-sm:4px}
 *{box-sizing:border-box}
-[hidden]{display:none!important}  /* beat inline display on #spotconnect etc. */
+[hidden]{display:none!important}
 body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--body);padding:24px 16px 60px;-webkit-font-smoothing:antialiased}
 .wrap{max-width:620px;margin:0 auto}
 h1{font-family:var(--display);font-weight:600;font-size:30px;margin:0 0 4px;letter-spacing:-.02em;
   background:linear-gradient(100deg,var(--blue),var(--purple));-webkit-background-clip:text;background-clip:text;color:transparent}
 .sub{color:var(--muted);margin:0 0 24px;font-size:13px;font-family:var(--mono)}
-.card{background:var(--card);border:1px solid var(--line);border-radius:8px;padding:18px;margin-bottom:16px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:var(--r);padding:18px;margin-bottom:14px}
 h2{font-family:var(--mono);font-size:12px;font-weight:500;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);margin:0 0 16px}
-.g{display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--line)}
-.g:last-child{border-bottom:0}
-.g .nm{flex:1;font-weight:500;font-size:15px}
-.g .cc{color:var(--muted);font-size:12px}
-.toggle{position:relative;width:52px;height:30px;flex:none;border:0;border-radius:999px;cursor:pointer;
-  background:var(--card2);transition:.15s}
-.toggle.on{background:var(--grn)}
-.toggle::after{content:"";position:absolute;top:3px;left:3px;width:24px;height:24px;border-radius:50%;
-  background:#fff;transition:.15s}
-.toggle.on::after{transform:translateX(22px)}
-input,button.add,button.big{font-family:var(--body);font-size:14px}
-.row{display:flex;gap:8px;margin-bottom:10px}
-input{flex:1;background:var(--bg);border:1px solid var(--line);border-radius:4px;color:var(--ink);padding:11px 12px}
-input.lbl{flex:0 0 34%}
-input:focus{outline:none;border-color:var(--blue)}
-input::placeholder{color:var(--faint)}
-.crow .x{flex:0 0 42px;background:var(--card2);border:1px solid var(--line);color:var(--muted);border-radius:4px;cursor:pointer;font-size:18px}
-button.add{background:none;border:1px dashed var(--line);color:var(--muted);border-radius:4px;padding:11px;width:100%;cursor:pointer;margin-bottom:12px;font-family:var(--mono);font-size:11px;letter-spacing:.06em;text-transform:uppercase}
-button.big{border:0;border-radius:4px;padding:13px;width:100%;font-weight:600;font-family:var(--display);color:var(--bg);
-  background:var(--blue);cursor:pointer}
-.err{color:var(--red);font-size:13px}
-select{width:100%;background:var(--bg);border:1px solid var(--line);border-radius:4px;color:var(--ink);
-  padding:12px;font-family:inherit;font-size:16px;margin-bottom:14px}
-select:focus{outline:none;border-color:var(--blue)}
-.lrow{display:flex;align-items:center;gap:12px;padding:8px 0;border-bottom:1px solid var(--line)}
-.lrow:last-child{border-bottom:0}
-.lrow .ln{flex:1;font-size:15px}
-.lrow input[type=range]{flex:2;accent-color:var(--blue)}
-.lrow .lw{flex:0 0 46px;text-align:right;font-variant-numeric:tabular-nums;color:var(--blue);font-family:var(--mono);font-weight:500;font-size:13px}
-.lrow.off .ln{color:var(--muted)}
-.prow2{display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--line)}
-.prow2:last-child{border-bottom:0}
-.prow2 .pi{flex:1}
-.prow2 .pi .pqx{font-weight:600}
-.prow2 .pi .pcx{color:var(--muted);font-size:12px;margin-top:2px}
-.mini{border:1px solid var(--line);background:var(--card2);color:var(--muted);border-radius:4px;
-  padding:8px 12px;cursor:pointer;font-family:var(--mono);font-size:11px;letter-spacing:.04em;text-transform:uppercase}
-.mini:hover{color:var(--ink)}
-.mini.del:hover{color:var(--red);border-color:var(--red)}
+.cc{color:var(--muted);font-size:13px;line-height:1.5}
+.big{border:0;border-radius:var(--r-sm);padding:13px;width:100%;font-weight:600;font-family:var(--display);
+  font-size:15px;color:var(--bg);background:var(--blue);cursor:pointer;text-decoration:none;display:block;text-align:center}
 .ctrls{display:flex;gap:10px;margin-top:14px}
-.ctrl{flex:1;border:1px solid var(--line);background:var(--card2);color:var(--ink);border-radius:4px;
+.ctrl{flex:1;border:1px solid var(--line);background:var(--card2);color:var(--ink);border-radius:var(--r-sm);
   padding:13px 0;font-family:var(--body);font-weight:600;font-size:15px;cursor:pointer}
 .ctrl:active{transform:scale(.98);border-color:var(--blue)}
-details.card summary{list-style:none;cursor:pointer;color:var(--muted)}
-details.card summary::-webkit-details-marker{display:none}
-details.card summary h2{color:var(--ink)}
-details.card summary::after{content:" +";color:var(--muted);font-family:var(--mono)}
-details.card[open] summary::after{content:" −"}
+.prow2{display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid var(--line)}
+.prow2:last-child{border-bottom:0}
+.prow2 .pi{flex:1;min-width:0}
+.prow2 .pqx{font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.prow2 .pcx{color:var(--muted);font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.mini{border:1px solid var(--line);background:var(--card2);color:var(--muted);border-radius:var(--r-sm);
+  padding:7px 11px;cursor:pointer;font-family:var(--mono);font-size:13px}
+.mini:hover{color:var(--ink)}
+.mini:disabled{opacity:.3;cursor:default}
+.mini.del:hover{color:var(--red);border-color:var(--red)}
 #nowplaying .prow2{border:0}
 #upnext{margin-top:12px}
-.links{color:var(--muted);font-size:13px;margin-top:20px}
-.links{font-family:var(--mono)}
+.links{color:var(--muted);font-size:12px;margin-top:20px;font-family:var(--mono)}
 .links a{color:var(--blue)}
 </style>
 </head>
 <body>
 <div class="wrap">
   <h1>party admin</h1>
-  <p class="sub"><span id="headcount">…</span> here — tap to check people in & out.</p>
+  <p class="sub">music control</p>
 
   <div class="card">
-    <h2>check-in</h2>
-    <div id="list"><p class="cc">loading…</p></div>
-  </div>
-
-  <div class="card">
-    <h2>music control</h2>
+    <h2>music</h2>
     <div id="spotstatus" class="cc">checking…</div>
-    <a class="big" id="spotconnect" style="display:block;text-align:center;text-decoration:none;margin-top:12px" hidden>connect Spotify</a>
+    <a class="big" id="spotconnect" style="margin-top:12px" hidden>connect Spotify</a>
     <div id="nowbox" hidden>
       <div id="nowplaying"></div>
       <div class="ctrls">
-        <button class="ctrl" data-act="play">▶ play</button>
-        <button class="ctrl" data-act="pause">⏸ pause</button>
-        <button class="ctrl" data-act="next">⏭ skip</button>
+        <button class="ctrl" data-act="play">play</button>
+        <button class="ctrl" data-act="pause">pause</button>
+        <button class="ctrl" data-act="next">skip</button>
       </div>
       <div id="upnext"></div>
-      <p class="cc" style="margin-top:10px">Spotify can't remove a specific queued song — use skip to move past one.</p>
+      <div id="qedit" class="ctrls" hidden>
+        <button class="ctrl" id="qapply">apply order</button>
+        <button class="ctrl" id="qcancel">cancel</button>
+      </div>
+      <p class="cc" style="margin-top:10px">Reorder (↑↓) or remove (×) upcoming songs, then apply — rebuilds the queue (brief blip, resumes the current song).</p>
     </div>
   </div>
 
-  <div class="card">
-    <h2>song queue (text fallback)</h2>
-    <div id="songadmin"><p class="cc">loading…</p></div>
-  </div>
-
-  <div class="card">
-    <h2>polls</h2>
-    <div class="row"><input id="pq" placeholder="question — e.g. pineapple on pizza?"></div>
-    <div class="row"><input id="pa" placeholder="option A"><input id="pb" placeholder="option B"></div>
-    <button class="big" id="paddbtn">add poll</button>
-    <div id="polllist" style="margin-top:16px"></div>
-  </div>
-
-  <details class="card">
-    <summary><h2 style="display:inline">connections (setup)</h2></summary>
-    <p class="cc" style="margin:8px 0 14px">Pick a person, set how well they know each other (0–100%). 0 = not connected.</p>
-    <select id="who"><option value="">— pick a person —</option></select>
-    <div id="links"></div>
-    <button class="big" id="saveconns" style="margin-top:14px" hidden>save connections</button>
-    <p class="cc" id="connmsg" style="text-align:center;margin-top:10px"></p>
-  </details>
-
-  <details class="card">
-    <summary><h2 style="display:inline">add a guest (setup)</h2></summary>
-    <div class="row" style="margin-top:12px"><input id="name" placeholder="name"></div>
-    <div id="crows"></div>
-    <button class="add" id="addrow">+ add contact info</button>
-    <button class="big" id="addbtn">add guest</button>
-    <p class="err" id="err"></p>
-  </details>
-
-  <p class="links">Guest link: <a href="/" target="_blank">/</a> &nbsp;·&nbsp;
+  <p class="links">Guest queue: <a href="/" target="_blank">/</a> &nbsp;·&nbsp;
     Wall: <a href="/wall" target="_blank">/wall</a> &nbsp;·&nbsp;
-    Welcome screen: <a href="/welcome" target="_blank">/welcome</a></p>
+    Welcome/QR: <a href="/welcome" target="_blank">/welcome</a></p>
 </div>
 
 <script>
-// bootstrap the key from ?key= once, stash it in sessionStorage, then scrub
-// the URL so it doesn't linger in history / referrer.
+// bootstrap admin key from ?key= once, stash in sessionStorage, scrub the URL
 const urlKey = new URLSearchParams(location.search).get("key");
-if(urlKey){ sessionStorage.setItem("admin_key", urlKey);
-  history.replaceState(null, "", location.pathname); }
+if(urlKey){ sessionStorage.setItem("admin_key", urlKey); history.replaceState(null,"",location.pathname); }
 const key = sessionStorage.getItem("admin_key") || "";
 const $ = s => document.querySelector(s);
 const H = {"Content-Type":"application/json","X-Admin-Key":key};
-let GUESTS = [], EDGEMAP = {};              // EDGEMAP: "lo-hi" -> weight
-const ekey = (a,b) => a<b ? a+"-"+b : b+"-"+a;
+function esc(s){return String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]))}
 
-async function load(){
-  const r = await fetch("/admin/guests", {headers:{"X-Admin-Key":key}});
-  if(!r.ok){ $("#list").innerHTML = '<p class="err">Bad admin key — check the URL.</p>'; return; }
-  const gs = await r.json();
-  GUESTS = gs; populateWho(); loadEdges();
-  $("#headcount").textContent = gs.filter(g=>g.present).length + " of " + gs.length;
-  const l = $("#list");
-  if(!gs.length){ l.innerHTML = '<p class="cc">No guests yet — add some below.</p>'; return; }
-  l.innerHTML = "";
-  for(const g of gs){
-    const row = document.createElement("div"); row.className="g";
-    const cc = g.contacts.length ? g.contacts.length + " contact" + (g.contacts.length>1?"s":"") : "no contacts";
-    row.innerHTML = '<div><div class="nm">'+esc(g.name)+'</div><div class="cc">'+cc+'</div></div>' +
-      '<div style="flex:1"></div><button class="toggle'+(g.present?" on":"")+'"></button>';
-    row.querySelector(".toggle").onclick = async (e) => {
-      const on = !g.present;
-      await fetch("/admin/present/"+g.id, {method:"POST",headers:H,
-        body:JSON.stringify({present:on})});
-      load();
-    };
-    l.appendChild(row);
-  }
-}
-// ---- connections editor ----
-function populateWho(){
-  const sel = $("#who"); const cur = sel.value;
-  sel.innerHTML = '<option value="">— pick a person —</option>' +
-    GUESTS.map(g=>`<option value="${g.id}">${esc(g.name)}</option>`).join("");
-  if(cur) sel.value = cur;
-}
-async function loadEdges(){
-  const r = await fetch("/admin/edges", {headers:{"X-Admin-Key":key}});
-  if(!r.ok) return;
-  EDGEMAP = {};
-  for(const e of await r.json()) EDGEMAP[ekey(e.a,e.b)] = e.weight;
-  if($("#who").value) renderLinks();
-}
-function renderLinks(){
-  const me = +$("#who").value;
-  const box = $("#links"); box.innerHTML = "";
-  if(!me){ $("#saveconns").hidden = true; return; }
-  $("#saveconns").hidden = false;
-  for(const g of GUESTS){
-    if(g.id === me) continue;
-    const w = EDGEMAP[ekey(me,g.id)] || 0;
-    const row = document.createElement("div");
-    row.className = "lrow" + (w ? "" : " off");
-    row.innerHTML = `<span class="ln">${esc(g.name)}</span>` +
-      `<input type="range" min="0" max="100" step="5" value="${w}" data-other="${g.id}">` +
-      `<span class="lw">${w?w+"%":"—"}</span>`;
-    const rng = row.querySelector("input");
-    rng.oninput = () => {
-      const v = +rng.value;
-      row.querySelector(".lw").textContent = v ? v+"%" : "—";
-      row.classList.toggle("off", !v);
-    };
-    box.appendChild(row);
-  }
-}
-$("#who").onchange = renderLinks;
-$("#saveconns").onclick = async () => {
-  const me = +$("#who").value; if(!me) return;
-  const links = [...$("#links").querySelectorAll("input[type=range]")].map(r=>({
-    other:+r.dataset.other, weight:+r.value}));
-  const r = await fetch("/admin/edges/set", {method:"POST", headers:H,
-    body:JSON.stringify({person:me, links})});
-  $("#connmsg").textContent = r.ok ? "saved" : "failed (bad key?)";
-  loadEdges();
-};
-
-function crowEl(){
-  const d=document.createElement("div"); d.className="row crow";
-  d.innerHTML='<input class="lbl" placeholder="label (phone/insta…)"><input class="val" placeholder="value"><button class="x">×</button>';
-  d.querySelector(".x").onclick=()=>d.remove();
-  return d;
-}
-$("#addrow").onclick=()=>$("#crows").appendChild(crowEl());
-$("#addbtn").onclick=async()=>{
-  const name=$("#name").value.trim();
-  if(!name){ $("#err").textContent="name required"; return; }
-  const contacts=[...$("#crows").querySelectorAll(".crow")].map(r=>({
-    label:r.querySelector(".lbl").value.trim(),value:r.querySelector(".val").value.trim()}))
-    .filter(c=>c.value);
-  const r=await fetch("/admin/guest",{method:"POST",headers:H,
-    body:JSON.stringify({name,contacts})});
-  if(!r.ok){ $("#err").textContent="failed (bad key?)"; return; }
-  $("#name").value=""; $("#crows").innerHTML=""; $("#err").textContent="";
-  load();
-};
-// ---- polls admin ----
-async function loadPolls(){
-  const r = await fetch("/admin/polls", {headers:{"X-Admin-Key":key}});
-  if(!r.ok) return;
-  const ps = await r.json();
-  const box = $("#polllist");
-  box.innerHTML = ps.length ? "" : '<p class="cc">No polls yet.</p>';
-  for(const p of ps){
-    const d = document.createElement("div"); d.className="prow2";
-    d.innerHTML = '<div class="pi"><div class="pqx">'+esc(p.question)+'</div>'+
-      '<div class="pcx">'+esc(p.opt_a)+' '+p.a+' · '+esc(p.opt_b)+' '+p.b+'</div></div>'+
-      '<button class="toggle'+(p.active?' on':'')+'"></button>'+
-      '<button class="mini del">delete</button>';
-    d.querySelector(".toggle").onclick = async () => {
-      await fetch("/admin/poll/"+p.id,{method:"POST",headers:H,body:JSON.stringify({active:!p.active})});
-      loadPolls();
-    };
-    d.querySelector(".del").onclick = async () => {
-      await fetch("/admin/poll/"+p.id,{method:"POST",headers:H,body:JSON.stringify({delete:true})});
-      loadPolls();
-    };
-    box.appendChild(d);
-  }
-}
-$("#paddbtn").onclick = async () => {
-  const q=$("#pq").value.trim(), a=$("#pa").value.trim(), b=$("#pb").value.trim();
-  if(!(q&&a&&b)) return;
-  const r = await fetch("/admin/poll",{method:"POST",headers:H,
-    body:JSON.stringify({question:q,opt_a:a,opt_b:b})});
-  if(r.ok){ $("#pq").value=$("#pa").value=$("#pb").value=""; loadPolls(); }
-};
-
-// ---- songs admin ----
-async function loadSongsAdmin(){
-  const songs = await (await fetch("/songs")).json();
-  const box = $("#songadmin");
-  box.innerHTML = songs.length ? "" : '<p class="cc">Queue is empty.</p>';
-  songs.forEach((s,i)=>{
-    const d = document.createElement("div"); d.className="prow2";
-    d.innerHTML = '<div class="pi"><div class="pqx">'+(i+1)+'. '+esc(s.title)+'</div>'+
-      (s.by?'<div class="pcx">'+esc(s.by)+'</div>':'')+'</div>'+
-      '<button class="mini">played</button><button class="mini del">×</button>';
-    d.querySelectorAll(".mini")[0].onclick = async () => {
-      await fetch("/admin/song/"+s.id,{method:"POST",headers:H,body:JSON.stringify({played:true})});
-      loadSongsAdmin();
-    };
-    d.querySelector(".del").onclick = async () => {
-      await fetch("/admin/song/"+s.id,{method:"POST",headers:H,body:JSON.stringify({delete:true})});
-      loadSongsAdmin();
-    };
-    box.appendChild(d);
-  });
-}
-
-// ---- spotify status + master control ----
 async function loadSpotify(){
   const st = await (await fetch("/music/status")).json();
   const s = $("#spotstatus"), btn = $("#spotconnect");
   if(!st.configured){
-    s.innerHTML = "Not configured — add SPOTIFY_CLIENT_ID / SPOTIFY_CLIENT_SECRET to the server .env.";
+    s.textContent = "Not configured — add SPOTIFY_CLIENT_ID / SPOTIFY_CLIENT_SECRET to the server .env.";
     btn.hidden = true; $("#nowbox").hidden = true;
   } else if(st.connected){
     const base = st.base ? " · autopilot: "+st.base+" base songs"+(st.primed?" (active)":"") : "";
-    s.innerHTML = "Connected. Keep Spotify playing on a device." + base;
+    s.textContent = "Connected. Keep Spotify playing on a device." + base;
     btn.hidden = false; btn.textContent = "reconnect Spotify"; btn.href = "/spotify/login?key="+encodeURIComponent(key);
     $("#nowbox").hidden = false; loadNow();
   } else {
-    s.innerHTML = "Configured but not connected — link your Spotify:";
+    s.textContent = "Configured but not connected — link your Spotify:";
     btn.hidden = false; btn.textContent = "connect Spotify"; btn.href = "/spotify/login?key="+encodeURIComponent(key);
     $("#nowbox").hidden = true;
   }
 }
+
+let Q = [], qediting = false;
 async function loadNow(){
   const d = await (await fetch("/music/now")).json();
   $("#nowplaying").innerHTML = d.playing
     ? '<div class="prow2"><div class="pi"><div class="pqx">▶ '+esc(d.playing.title)+'</div>'+
       '<div class="pcx">'+esc(d.playing.artist)+'</div></div></div>'
     : '<p class="cc">Nothing playing — start a song in Spotify on any device.</p>';
-  $("#upnext").innerHTML = (d.queue||[]).length
-    ? '<div class="cc" style="margin-bottom:6px">up next</div>' + d.queue.map(t=>
-        '<div class="prow2"><div class="pi"><div class="pqx">'+esc(t.title)+'</div>'+
-        '<div class="pcx">'+esc(t.artist)+'</div></div></div>').join("")
-    : "";
+  if(!qediting){ Q = (d.queue||[]).slice(); renderQ(); }
 }
-document.querySelectorAll(".ctrl").forEach(b=>b.onclick=async()=>{
+function renderQ(){
+  const box = $("#upnext");
+  if(!Q.length){ box.innerHTML = ""; $("#qedit").hidden = true; return; }
+  box.innerHTML = '<div class="cc" style="margin-bottom:6px">up next</div>' + Q.map((t,i)=>
+    '<div class="prow2"><div class="pi"><div class="pqx">'+esc(t.title)+'</div>'+
+    '<div class="pcx">'+esc(t.artist)+'</div></div>'+
+    '<button class="mini" data-mv="up" data-i="'+i+'"'+(i===0?' disabled':'')+'>↑</button>'+
+    '<button class="mini" data-mv="down" data-i="'+i+'"'+(i===Q.length-1?' disabled':'')+'>↓</button>'+
+    '<button class="mini del" data-mv="del" data-i="'+i+'">×</button></div>').join("");
+  box.querySelectorAll("[data-mv]").forEach(b=>b.onclick=()=>{
+    const i=+b.dataset.i, mv=b.dataset.mv;
+    if(mv==="up" && i>0){ [Q[i-1],Q[i]]=[Q[i],Q[i-1]]; }
+    else if(mv==="down" && i<Q.length-1){ [Q[i+1],Q[i]]=[Q[i],Q[i+1]]; }
+    else if(mv==="del"){ Q.splice(i,1); }
+    qediting = true; renderQ();
+  });
+  $("#qedit").hidden = !qediting;
+}
+$("#qapply").onclick = async () => {
+  const r = await fetch("/music/reorder",{method:"POST",headers:H,body:JSON.stringify({uris:Q.map(t=>t.uri)})});
+  if(!r.ok){ const e=await r.json().catch(()=>({})); alert(e.detail||"reorder failed"); return; }
+  qediting = false; setTimeout(loadNow, 700);
+};
+$("#qcancel").onclick = () => { qediting = false; loadNow(); };
+document.querySelectorAll(".ctrl[data-act]").forEach(b=>b.onclick=async()=>{
   const r = await fetch("/music/control",{method:"POST",headers:H,body:JSON.stringify({action:b.dataset.act})});
   if(!r.ok){ const e=await r.json().catch(()=>({})); alert(e.detail||"control failed"); }
   setTimeout(loadNow, 400);
 });
 
-function esc(s){return String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]))}
-load(); loadPolls(); loadSongsAdmin(); loadSpotify();
-setInterval(()=>{ loadPolls(); loadSongsAdmin(); loadSpotify(); }, 5000);
+loadSpotify();
+setInterval(loadSpotify, 5000);
 </script>
 </body>
 </html>

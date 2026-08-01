@@ -30,33 +30,16 @@ h1{font-family:"Space Grotesk";font-weight:600;font-size:clamp(48px,8vw,104px);l
 </style>
 </head>
 <body>
-<div class="kick">you're invited</div>
-<h1>the&nbsp;party</h1>
+<div class="kick">the party</div>
+<h1>request&nbsp;a&nbsp;song</h1>
 <div class="qrbox" id="qrbox"></div>
-<div class="scan">scan to join the graph</div>
-<div class="count"><b id="n">0</b> people here</div>
-<div class="ticker" id="ticker"></div>
+<div class="scan">scan to add to the queue</div>
+<div class="ticker" id="ticker">any song · it plays next · no app needed</div>
 <script>
 // QR encodes ?url= (final domain) or this page's origin by default
 const joinUrl = new URLSearchParams(location.search).get("url") || location.origin + "/";
 const qr=qrcode(0,"M"); qr.addData(joinUrl); qr.make();
 document.getElementById("qrbox").innerHTML=qr.createImgTag(8,0);
-
-let known=null;
-async function load(){
-  const s=await (await fetch("/state")).json();
-  document.getElementById("n").textContent=s.guests.length;
-  const now=new Set(s.guests.map(g=>g.id));
-  if(known){
-    const arrived=s.guests.filter(g=>!known.has(g.id));
-    if(arrived.length) announce(arrived.map(g=>g.name).join(" & ")+" just arrived");
-  } else { announce("scan the code · tap your name to check in"); }
-  known=now;
-}
-function announce(msg){ const t=document.getElementById("ticker");
-  t.textContent=msg; t.classList.remove("pop"); void t.offsetWidth; t.classList.add("pop"); }
-load();
-setInterval(load,3000);
 </script>
 </body>
 </html>
