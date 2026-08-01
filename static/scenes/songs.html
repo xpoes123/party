@@ -4,35 +4,35 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>songs scene</title>
-<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=Instrument+Sans:wght@400;500&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600&family=Inter:wght@400;500&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
 *{box-sizing:border-box;margin:0}
 html,body{height:100%;overflow:hidden}
-body{background:transparent;color:#f5eeff;font-family:"Instrument Sans",system-ui,sans-serif;padding:6vh 7vw}
+body{background:transparent;color:#c0caf5;font-family:"Inter",system-ui,sans-serif;padding:6vh 7vw}
 .head{display:flex;align-items:baseline;gap:16px;margin-bottom:4vh}
-.title{font-family:"Bricolage Grotesque";font-weight:800;font-size:clamp(30px,4vw,58px);
-  background:linear-gradient(100deg,#59e0ff,#7cf6a0);-webkit-background-clip:text;background-clip:text;color:transparent}
-.sub{color:#a892d0;font-size:clamp(13px,1.3vw,18px)}
-.list{display:flex;flex-direction:column;gap:16px}
-.row{display:flex;align-items:center;gap:20px;background:#1b1030;border:1px solid #2c1c47;
-  border-radius:16px;padding:clamp(14px,2vh,22px) clamp(18px,2.5vw,30px)}
-.row.now{border-color:#7cf6a0;background:linear-gradient(100deg,rgba(124,246,160,.12),#1b1030)}
-.num{font-family:"Bricolage Grotesque";font-weight:800;font-size:clamp(24px,2.6vw,40px);color:#4a3a68;
+.title{font-family:"Space Grotesk";font-weight:600;font-size:clamp(28px,3.6vw,52px);letter-spacing:-.02em;
+  background:linear-gradient(100deg,#7aa2f7,#bb9af7);-webkit-background-clip:text;background-clip:text;color:transparent}
+.sub{font-family:"JetBrains Mono";color:#565f89;font-size:clamp(12px,1.2vw,16px);letter-spacing:.1em;text-transform:uppercase}
+.list{display:flex;flex-direction:column;gap:14px}
+.row{display:flex;align-items:center;gap:20px;background:#1f2335;border:1px solid #2a2f45;
+  border-radius:8px;padding:clamp(14px,2vh,20px) clamp(18px,2.5vw,28px)}
+.row.now{border-color:rgba(158,206,106,.5)}
+.num{font-family:"JetBrains Mono";font-weight:500;font-size:clamp(20px,2.2vw,34px);color:#414868;
   min-width:1.4em;text-align:center}
-.now .num{color:#7cf6a0}
-.art{width:clamp(48px,5vw,80px);height:clamp(48px,5vw,80px);border-radius:10px;flex:none;
-  object-fit:cover;background:#241338}
+.now .num{color:#9ece6a}
+.art{width:clamp(48px,5vw,76px);height:clamp(48px,5vw,76px);border-radius:6px;flex:none;
+  object-fit:cover;background:#24283b}
 .info{flex:1;min-width:0}
-.t{font-family:"Bricolage Grotesque";font-weight:600;font-size:clamp(20px,2.4vw,38px);
+.t{font-family:"Space Grotesk";font-weight:500;font-size:clamp(20px,2.2vw,34px);
   white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.by{color:#a892d0;font-size:clamp(12px,1.2vw,17px);margin-top:2px}
-.tag{font-family:"Bricolage Grotesque";font-weight:700;color:#7cf6a0;font-size:clamp(13px,1.3vw,18px);
-  letter-spacing:.15em;text-transform:uppercase}
-.empty{color:#a892d0;font-family:"Bricolage Grotesque";font-size:clamp(24px,3vw,40px);margin-top:8vh;text-align:center}
+.by{color:#565f89;font-size:clamp(12px,1.2vw,16px);margin-top:3px}
+.tag{font-family:"JetBrains Mono";font-weight:500;color:#9ece6a;font-size:clamp(12px,1.2vw,16px);
+  letter-spacing:.14em;text-transform:uppercase}
+.empty{color:#565f89;font-family:"Space Grotesk";font-size:clamp(22px,2.6vw,36px);margin-top:8vh;text-align:center}
 </style>
 </head>
 <body>
-<div class="head"><span class="title">up next</span><span class="sub">🎧 request from your phone</span></div>
+<div class="head"><span class="title">up next</span><span class="sub">request from your phone</span></div>
 <div class="list" id="list"><p class="empty">no requests yet — add one!</p></div>
 <script>
 function row(t, idx, now){

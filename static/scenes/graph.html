@@ -4,20 +4,20 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>graph scene</title>
-<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,800&family=Instrument+Sans:wght@500&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600&family=Inter:wght@400;500&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <script src="/static/cytoscape.min.js"></script>
 <style>
 *{box-sizing:border-box;margin:0}
 html,body{height:100%;overflow:hidden}
-body{background:transparent;color:#f5eeff;font-family:"Instrument Sans",system-ui,sans-serif}
+body{background:transparent;color:#c0caf5;font-family:"Inter",system-ui,sans-serif}
 .top{position:fixed;top:0;left:0;right:0;z-index:5;display:flex;justify-content:space-between;
   align-items:flex-start;padding:30px 44px;pointer-events:none}
-.title{font-family:"Bricolage Grotesque";font-weight:800;font-size:clamp(26px,3vw,44px);line-height:1;
-  background:linear-gradient(100deg,#ff4d9d,#ffd36b 55%,#59e0ff);
+.title{font-family:"Space Grotesk";font-weight:600;font-size:clamp(24px,2.6vw,40px);line-height:1;letter-spacing:-.02em;
+  background:linear-gradient(100deg,#7aa2f7,#bb9af7);
   -webkit-background-clip:text;background-clip:text;color:transparent}
-.sub{font-size:clamp(12px,1.1vw,16px);color:#a892d0;margin-top:6px}
-.stat{text-align:right;font-size:clamp(13px,1.3vw,19px);color:#a892d0}
-.stat b{color:#f5eeff;font-size:1.5em;font-family:"Bricolage Grotesque"}
+.sub{font-family:"JetBrains Mono";font-size:clamp(11px,1vw,14px);color:#565f89;margin-top:8px;letter-spacing:.1em;text-transform:uppercase}
+.stat{text-align:right;font-family:"JetBrains Mono";font-size:clamp(12px,1.2vw,16px);color:#565f89;letter-spacing:.06em}
+.stat b{color:#c0caf5;font-size:1.5em;font-family:"Space Grotesk";font-weight:600}
 #cy{position:fixed;inset:0}
 </style>
 </head>
@@ -29,7 +29,7 @@ body{background:transparent;color:#f5eeff;font-family:"Instrument Sans",system-u
 <div id="cy"></div>
 <script>
 let cy=null, lastSig="";
-const PAL=["#ff4d9d","#59e0ff","#7cf6a0","#ffd36b","#bb9af7","#ff9e64","#7aa2f7","#f7768e"];
+const PAL=["#7aa2f7","#bb9af7","#9ece6a","#e0af68","#7dcfff","#f7768e","#73daca","#ff9e64"];
 
 // weighted community detection. hubs (who know almost everyone) bridge every
 // group, so exclude them from detection then slot them into their strongest group.
@@ -70,10 +70,10 @@ function build(els, relayout){
   if(!cy){
     cy=cytoscape({container:document.getElementById("cy"),elements:els,minZoom:.3,maxZoom:2.5,
       style:[
-        {selector:"node",style:{"background-color":"data(color)","label":"data(label)","color":"#f5eeff",
-          "font-family":"Bricolage Grotesque","font-size":22,"text-valign":"bottom","text-margin-y":10,
+        {selector:"node",style:{"background-color":"data(color)","label":"data(label)","color":"#c0caf5",
+          "font-family":"Space Grotesk","font-weight":500,"font-size":21,"text-valign":"bottom","text-margin-y":10,
           "width":"mapData(deg,0,12,34,68)","height":"mapData(deg,0,12,34,68)",
-          "border-width":3,"border-color":"#150b28","text-outline-color":"#0a0714","text-outline-width":4}},
+          "border-width":3,"border-color":"#1a1b26","text-outline-color":"#16161e","text-outline-width":4}},
         {selector:"edge",style:{"width":"mapData(weight,0,100,2,7)","line-color":"data(ecolor)",
           "opacity":"mapData(weight,0,100,.4,.9)","curve-style":"straight"}},
         {selector:"edge[!same]",style:{"opacity":0.12,"width":1.5,"line-style":"dashed"}}

@@ -4,15 +4,14 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>blob battle</title>
-<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,800&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
 *{box-sizing:border-box;margin:0}
 html,body{height:100%;overflow:hidden;background:transparent}
 #c{position:fixed;inset:0;width:100%;height:100%}
-.hud{position:fixed;top:26px;left:0;right:0;text-align:center;pointer-events:none;
-  font-family:"Bricolage Grotesque";font-weight:800}
-.hud .t{font-size:clamp(22px,2.6vw,40px);letter-spacing:.06em;color:#f5eeff}
-.hud .s{font-size:clamp(13px,1.3vw,18px);color:#a892d0;letter-spacing:.25em;text-transform:uppercase;margin-top:6px}
+.hud{position:fixed;top:28px;left:0;right:0;text-align:center;pointer-events:none}
+.hud .t{font-family:"Space Grotesk";font-weight:600;font-size:clamp(22px,2.6vw,38px);letter-spacing:-.01em;color:#c0caf5}
+.hud .s{font-family:"JetBrains Mono";font-size:clamp(12px,1.2vw,16px);color:#565f89;letter-spacing:.22em;text-transform:uppercase;margin-top:8px}
 </style>
 </head>
 <body>
@@ -22,7 +21,7 @@ html,body{height:100%;overflow:hidden;background:transparent}
 const cv=document.getElementById("c"), ctx=cv.getContext("2d");
 let W,H; function fit(){W=cv.width=innerWidth;H=cv.height=innerHeight;} fit(); addEventListener("resize",fit);
 
-let names=["Pinky","Cyan"];
+let names=["Blue","Red"];
 async function pickNames(){
   try{
     const s=await (await fetch("/state")).json();
@@ -36,7 +35,7 @@ const rnd=(a,b)=>a+Math.random()*(b-a);
 function newBlob(x,color,name){return {x,y:H/2,vx:0,vy:0,r:26,color,name,ph:Math.random()*6};}
 let blobs, food, winner, winAt, particles;
 function reset(){
-  blobs=[newBlob(W*0.3,"#ff4d9d",names[0]), newBlob(W*0.7,"#59e0ff",names[1])];
+  blobs=[newBlob(W*0.3,"#7aa2f7",names[0]), newBlob(W*0.7,"#f7768e",names[1])];
   food=[]; for(let i=0;i<46;i++) spawnFood();
   particles=[]; winner=null; winAt=0;
 }
@@ -87,8 +86,8 @@ function blobPath(b){ ctx.beginPath();
 function draw(){
   ctx.clearRect(0,0,W,H);
   // food
-  for(const f of food){ ctx.beginPath();ctx.arc(f.x,f.y,f.r,0,7);ctx.fillStyle="#ffd36b";
-    ctx.shadowColor="#ffd36b";ctx.shadowBlur=10;ctx.fill();ctx.shadowBlur=0; }
+  for(const f of food){ ctx.beginPath();ctx.arc(f.x,f.y,f.r,0,7);ctx.fillStyle="#e0af68";
+    ctx.shadowColor="#e0af68";ctx.shadowBlur=10;ctx.fill();ctx.shadowBlur=0; }
   // particles
   for(let i=particles.length-1;i>=0;i--){ const p=particles[i];
     p.x+=p.vx;p.y+=p.vy;p.life-=0.04; if(p.life<=0){particles.splice(i,1);continue;}
@@ -96,11 +95,11 @@ function draw(){
   // blobs
   for(const b of blobs){ ctx.shadowColor=b.color;ctx.shadowBlur=30;
     blobPath(b);ctx.fillStyle=b.color;ctx.globalAlpha=.9;ctx.fill();ctx.globalAlpha=1;ctx.shadowBlur=0;
-    ctx.fillStyle="#0a0714";ctx.font='800 '+Math.max(13,b.r*0.42)+'px Bricolage Grotesque';
+    ctx.fillStyle="#16161e";ctx.font='600 '+Math.max(13,b.r*0.42)+'px Space Grotesk';
     ctx.textAlign="center";ctx.textBaseline="middle";ctx.fillText(b.name,b.x,b.y); }
   // score
   const sc=document.getElementById("score");
-  if(winner){ sc.textContent="🏆 "+winner+" wins!"; }
+  if(winner){ sc.textContent=winner+" wins"; }
   else { sc.textContent=blobs[0].name+" "+Math.round(blobs[0].r)+"  vs  "+Math.round(blobs[1].r)+" "+blobs[1].name; }
 }
 pickNames().then(()=>{ reset(); (function loop(){step();requestAnimationFrame(loop);})(); });

@@ -4,29 +4,29 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>the party — welcome</title>
-<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=Instrument+Sans:wght@500&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <script src="/static/qrcode.js"></script>
 <style>
 *{box-sizing:border-box;margin:0}
 html,body{height:100%;overflow:hidden}
 body{background:
-  radial-gradient(1200px 700px at 80% -10%, rgba(255,77,157,.18), transparent 60%),
-  radial-gradient(1000px 700px at 0% 110%, rgba(89,224,255,.14), transparent 55%),
-  #0a0714;color:#f5eeff;font-family:"Instrument Sans",system-ui,sans-serif;
+  radial-gradient(1200px 700px at 80% -10%, rgba(122,162,247,.12), transparent 60%),
+  radial-gradient(1000px 700px at 0% 110%, rgba(187,154,247,.09), transparent 55%),
+  #1a1b26;color:#c0caf5;font-family:"Inter",system-ui,sans-serif;
   display:flex;flex-direction:column;align-items:center;justify-content:center;padding:5vh 4vw;text-align:center}
-.kick{font-size:clamp(14px,1.4vw,20px);letter-spacing:.36em;text-transform:uppercase;color:#a892d0}
-h1{font-family:"Bricolage Grotesque";font-weight:800;font-size:clamp(52px,9vw,120px);line-height:.9;margin:.08em 0 .2em;
-  background:linear-gradient(100deg,#ff4d9d,#ffd36b 55%,#59e0ff);-webkit-background-clip:text;background-clip:text;color:transparent}
-.qrbox{background:#fff;padding:clamp(16px,2vw,26px);border-radius:24px;box-shadow:0 0 60px rgba(255,77,157,.4)}
-.qrbox img,.qrbox canvas,.qrbox table{display:block;width:clamp(220px,26vw,360px);height:auto;image-rendering:pixelated}
-.scan{font-family:"Bricolage Grotesque";font-weight:600;font-size:clamp(22px,2.6vw,40px);margin-top:26px}
-.count{margin-top:10px;font-size:clamp(16px,1.6vw,24px);color:#a892d0}
-.count b{color:#f5eeff;font-family:"Bricolage Grotesque";font-size:1.5em}
+.kick{font-family:"JetBrains Mono";font-size:clamp(13px,1.3vw,18px);letter-spacing:.34em;text-transform:uppercase;color:#565f89}
+h1{font-family:"Space Grotesk";font-weight:600;font-size:clamp(48px,8vw,104px);line-height:.95;margin:.12em 0 .28em;letter-spacing:-.02em;
+  background:linear-gradient(100deg,#7aa2f7,#bb9af7);-webkit-background-clip:text;background-clip:text;color:transparent}
+.qrbox{background:#fff;padding:clamp(16px,2vw,24px);border-radius:12px;border:1px solid #2a2f45}
+.qrbox img,.qrbox canvas,.qrbox table{display:block;width:clamp(220px,26vw,340px);height:auto;image-rendering:pixelated}
+.scan{font-family:"Space Grotesk";font-weight:500;font-size:clamp(20px,2.4vw,34px);margin-top:28px;color:#a9b1d6}
+.count{font-family:"JetBrains Mono";margin-top:12px;font-size:clamp(13px,1.3vw,18px);color:#565f89;letter-spacing:.1em;text-transform:uppercase}
+.count b{color:#c0caf5;font-family:"Space Grotesk";font-weight:600;font-size:1.4em}
 .ticker{position:fixed;bottom:0;left:0;right:0;height:64px;display:flex;align-items:center;justify-content:center;
-  font-family:"Bricolage Grotesque";font-weight:700;font-size:clamp(18px,2vw,30px);
-  background:linear-gradient(180deg,transparent,rgba(10,7,20,.6));color:#ffd36b}
+  font-family:"JetBrains Mono";font-weight:500;font-size:clamp(14px,1.5vw,22px);letter-spacing:.06em;
+  background:linear-gradient(180deg,transparent,rgba(22,22,30,.7));color:#9ece6a}
 .ticker.pop{animation:pop .5s ease}
-@keyframes pop{0%{transform:scale(.7);opacity:0}60%{transform:scale(1.08)}100%{transform:scale(1);opacity:1}}
+@keyframes pop{0%{transform:scale(.7);opacity:0}60%{transform:scale(1.06)}100%{transform:scale(1);opacity:1}}
 </style>
 </head>
 <body>
@@ -49,8 +49,8 @@ async function load(){
   const now=new Set(s.guests.map(g=>g.id));
   if(known){
     const arrived=s.guests.filter(g=>!known.has(g.id));
-    if(arrived.length) announce("🎉 "+arrived.map(g=>g.name).join(" & ")+" just arrived!");
-  } else { announce("welcome — tap your name to check in"); }
+    if(arrived.length) announce(arrived.map(g=>g.name).join(" & ")+" just arrived");
+  } else { announce("scan the code · tap your name to check in"); }
   known=now;
 }
 function announce(msg){ const t=document.getElementById("ticker");

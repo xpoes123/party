@@ -4,30 +4,29 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>poll scene</title>
-<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=Instrument+Sans:wght@500&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600&family=Inter:wght@400;500&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
 *{box-sizing:border-box;margin:0}
 html,body{height:100%;overflow:hidden}
-body{background:transparent;color:#f5eeff;font-family:"Instrument Sans",system-ui,sans-serif;
+body{background:transparent;color:#c0caf5;font-family:"Inter",system-ui,sans-serif;
   display:flex;align-items:center;justify-content:center;padding:6vh 6vw}
 .wrap{width:100%;max-width:1100px}
-.kick{text-align:center;font-size:clamp(13px,1.3vw,18px);letter-spacing:.3em;text-transform:uppercase;color:#a892d0;margin-bottom:14px}
-.q{font-family:"Bricolage Grotesque";font-weight:800;font-size:clamp(34px,5vw,68px);text-align:center;
-  line-height:1.02;margin-bottom:6vh}
-.bars{display:flex;flex-direction:column;gap:22px}
-.bar{position:relative;height:clamp(70px,11vh,120px);border-radius:20px;overflow:hidden;
-  background:#1b1030;border:1px solid #2c1c47}
-.fill{position:absolute;inset:0;width:0;transition:width .8s cubic-bezier(.22,1,.36,1);border-radius:20px}
-.fill.a{background:linear-gradient(100deg,#ff4d9d,#ff85b8)}
-.fill.b{background:linear-gradient(100deg,#59e0ff,#7cf6a0)}
+.kick{font-family:"JetBrains Mono";text-align:center;font-size:clamp(12px,1.2vw,16px);letter-spacing:.24em;text-transform:uppercase;color:#565f89;margin-bottom:16px}
+.q{font-family:"Space Grotesk";font-weight:600;font-size:clamp(32px,4.6vw,62px);text-align:center;
+  line-height:1.04;letter-spacing:-.02em;margin-bottom:6vh}
+.bars{display:flex;flex-direction:column;gap:18px}
+.bar{position:relative;height:clamp(66px,10vh,112px);border-radius:8px;overflow:hidden;
+  background:#1f2335;border:1px solid #2a2f45}
+.fill{position:absolute;inset:0;width:0;transition:width .8s cubic-bezier(.22,1,.36,1)}
+.fill.a{background:rgba(122,162,247,.28)}
+.fill.b{background:rgba(187,154,247,.28)}
 .lab{position:absolute;inset:0;display:flex;align-items:center;justify-content:space-between;
   padding:0 clamp(20px,3vw,40px);z-index:2}
-.opt{font-family:"Bricolage Grotesque";font-weight:600;font-size:clamp(22px,3vw,42px);
-  text-shadow:0 2px 12px rgba(0,0,0,.4)}
-.pct{font-family:"Bricolage Grotesque";font-weight:800;font-size:clamp(26px,3.4vw,48px);
-  font-variant-numeric:tabular-nums;text-shadow:0 2px 12px rgba(0,0,0,.4)}
-.tot{text-align:center;color:#a892d0;margin-top:24px;font-size:clamp(14px,1.4vw,20px)}
-.empty{text-align:center;color:#a892d0;font-family:"Bricolage Grotesque";font-size:clamp(24px,3vw,40px)}
+.opt{font-family:"Space Grotesk";font-weight:500;font-size:clamp(22px,2.8vw,40px)}
+.pct{font-family:"JetBrains Mono";font-weight:500;font-size:clamp(24px,3vw,44px);
+  font-variant-numeric:tabular-nums;color:#a9b1d6}
+.tot{font-family:"JetBrains Mono";text-align:center;color:#565f89;margin-top:26px;font-size:clamp(12px,1.2vw,17px);letter-spacing:.08em;text-transform:uppercase}
+.empty{text-align:center;color:#565f89;font-family:"Space Grotesk";font-size:clamp(22px,2.6vw,36px)}
 </style>
 </head>
 <body>

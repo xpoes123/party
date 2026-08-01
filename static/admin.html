@@ -4,69 +4,71 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>the party — admin</title>
-<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,800&family=Instrument+Sans:wght@400;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
-:root{--bg:#0a0714;--card:#1b1030;--line:#2c1c47;--ink:#f5eeff;--muted:#a892d0;--pink:#ff4d9d;--gold:#ffd36b;--grn:#7CF6A0}
+:root{--bg:#1a1b26;--card:#1f2335;--card2:#24283b;--line:#2a2f45;--ink:#c0caf5;--ink2:#a9b1d6;--muted:#565f89;--faint:#414868;--blue:#7aa2f7;--purple:#bb9af7;--green:#9ece6a;--red:#f7768e;--pink:#7aa2f7;--gold:#e0af68;--grn:#9ece6a;--display:"Space Grotesk",system-ui,sans-serif;--body:"Inter",system-ui,sans-serif;--mono:"JetBrains Mono",ui-monospace,monospace}
 *{box-sizing:border-box}
 [hidden]{display:none!important}  /* beat inline display on #spotconnect etc. */
-body{margin:0;background:var(--bg);color:var(--ink);font-family:"Instrument Sans",system-ui,sans-serif;padding:24px 16px 60px}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--body);padding:24px 16px 60px;-webkit-font-smoothing:antialiased}
 .wrap{max-width:620px;margin:0 auto}
-h1{font-family:"Bricolage Grotesque";font-size:34px;margin:0 0 4px;
-  background:linear-gradient(100deg,var(--pink),var(--gold));-webkit-background-clip:text;background-clip:text;color:transparent}
-.sub{color:var(--muted);margin:0 0 24px;font-size:14px}
-.card{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:18px;margin-bottom:16px}
-h2{font-family:"Bricolage Grotesque";font-size:18px;margin:0 0 14px}
+h1{font-family:var(--display);font-weight:600;font-size:30px;margin:0 0 4px;letter-spacing:-.02em;
+  background:linear-gradient(100deg,var(--blue),var(--purple));-webkit-background-clip:text;background-clip:text;color:transparent}
+.sub{color:var(--muted);margin:0 0 24px;font-size:13px;font-family:var(--mono)}
+.card{background:var(--card);border:1px solid var(--line);border-radius:8px;padding:18px;margin-bottom:16px}
+h2{font-family:var(--mono);font-size:12px;font-weight:500;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);margin:0 0 16px}
 .g{display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--line)}
 .g:last-child{border-bottom:0}
-.g .nm{flex:1;font-weight:600;font-size:16px}
+.g .nm{flex:1;font-weight:500;font-size:15px}
 .g .cc{color:var(--muted);font-size:12px}
 .toggle{position:relative;width:52px;height:30px;flex:none;border:0;border-radius:999px;cursor:pointer;
-  background:#2a1540;transition:.15s}
+  background:var(--card2);transition:.15s}
 .toggle.on{background:var(--grn)}
 .toggle::after{content:"";position:absolute;top:3px;left:3px;width:24px;height:24px;border-radius:50%;
   background:#fff;transition:.15s}
 .toggle.on::after{transform:translateX(22px)}
-input,button.add,button.big{font-family:inherit;font-size:15px}
+input,button.add,button.big{font-family:var(--body);font-size:14px}
 .row{display:flex;gap:8px;margin-bottom:10px}
-input{flex:1;background:#120a22;border:1px solid var(--line);border-radius:11px;color:var(--ink);padding:11px 12px}
+input{flex:1;background:var(--bg);border:1px solid var(--line);border-radius:4px;color:var(--ink);padding:11px 12px}
 input.lbl{flex:0 0 34%}
-input:focus{outline:none;border-color:var(--pink)}
-.crow .x{flex:0 0 42px;background:#2a1540;border:1px solid var(--line);color:var(--muted);border-radius:11px;cursor:pointer;font-size:18px}
-button.add{background:none;border:1px dashed var(--line);color:var(--muted);border-radius:11px;padding:11px;width:100%;cursor:pointer;margin-bottom:12px}
-button.big{border:0;border-radius:12px;padding:14px;width:100%;font-weight:800;color:#120a1f;
-  background:linear-gradient(100deg,var(--pink),var(--gold));cursor:pointer}
-.err{color:#ff7a9c;font-size:13px}
-select{width:100%;background:#120a22;border:1px solid var(--line);border-radius:11px;color:var(--ink);
+input:focus{outline:none;border-color:var(--blue)}
+input::placeholder{color:var(--faint)}
+.crow .x{flex:0 0 42px;background:var(--card2);border:1px solid var(--line);color:var(--muted);border-radius:4px;cursor:pointer;font-size:18px}
+button.add{background:none;border:1px dashed var(--line);color:var(--muted);border-radius:4px;padding:11px;width:100%;cursor:pointer;margin-bottom:12px;font-family:var(--mono);font-size:11px;letter-spacing:.06em;text-transform:uppercase}
+button.big{border:0;border-radius:4px;padding:13px;width:100%;font-weight:600;font-family:var(--display);color:var(--bg);
+  background:var(--blue);cursor:pointer}
+.err{color:var(--red);font-size:13px}
+select{width:100%;background:var(--bg);border:1px solid var(--line);border-radius:4px;color:var(--ink);
   padding:12px;font-family:inherit;font-size:16px;margin-bottom:14px}
-select:focus{outline:none;border-color:var(--pink)}
+select:focus{outline:none;border-color:var(--blue)}
 .lrow{display:flex;align-items:center;gap:12px;padding:8px 0;border-bottom:1px solid var(--line)}
 .lrow:last-child{border-bottom:0}
 .lrow .ln{flex:1;font-size:15px}
-.lrow input[type=range]{flex:2;accent-color:var(--pink)}
-.lrow .lw{flex:0 0 46px;text-align:right;font-variant-numeric:tabular-nums;color:var(--gold);font-weight:600;font-size:14px}
+.lrow input[type=range]{flex:2;accent-color:var(--blue)}
+.lrow .lw{flex:0 0 46px;text-align:right;font-variant-numeric:tabular-nums;color:var(--blue);font-family:var(--mono);font-weight:500;font-size:13px}
 .lrow.off .ln{color:var(--muted)}
 .prow2{display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--line)}
 .prow2:last-child{border-bottom:0}
 .prow2 .pi{flex:1}
 .prow2 .pi .pqx{font-weight:600}
 .prow2 .pi .pcx{color:var(--muted);font-size:12px;margin-top:2px}
-.mini{border:1px solid var(--line);background:#241338;color:var(--muted);border-radius:9px;
-  padding:8px 12px;cursor:pointer;font-family:inherit;font-size:13px}
+.mini{border:1px solid var(--line);background:var(--card2);color:var(--muted);border-radius:4px;
+  padding:8px 12px;cursor:pointer;font-family:var(--mono);font-size:11px;letter-spacing:.04em;text-transform:uppercase}
 .mini:hover{color:var(--ink)}
-.mini.del:hover{color:#ff7a9c;border-color:#ff7a9c}
+.mini.del:hover{color:var(--red);border-color:var(--red)}
 .ctrls{display:flex;gap:10px;margin-top:14px}
-.ctrl{flex:1;border:1px solid var(--line);background:#241338;color:var(--ink);border-radius:12px;
-  padding:14px 0;font-family:inherit;font-weight:700;font-size:15px;cursor:pointer}
-.ctrl:active{transform:scale(.97);border-color:var(--pink)}
+.ctrl{flex:1;border:1px solid var(--line);background:var(--card2);color:var(--ink);border-radius:4px;
+  padding:13px 0;font-family:var(--body);font-weight:600;font-size:15px;cursor:pointer}
+.ctrl:active{transform:scale(.98);border-color:var(--blue)}
 details.card summary{list-style:none;cursor:pointer;color:var(--muted)}
 details.card summary::-webkit-details-marker{display:none}
 details.card summary h2{color:var(--ink)}
-details.card summary::after{content:" ▸";color:var(--muted)}
-details.card[open] summary::after{content:" ▾"}
+details.card summary::after{content:" +";color:var(--muted);font-family:var(--mono)}
+details.card[open] summary::after{content:" −"}
 #nowplaying .prow2{border:0}
 #upnext{margin-top:12px}
 .links{color:var(--muted);font-size:13px;margin-top:20px}
-.links a{color:var(--gold)}
+.links{font-family:var(--mono)}
+.links a{color:var(--blue)}
 </style>
 </head>
 <body>
@@ -209,7 +211,7 @@ $("#saveconns").onclick = async () => {
     other:+r.dataset.other, weight:+r.value}));
   const r = await fetch("/admin/edges/set", {method:"POST", headers:H,
     body:JSON.stringify({person:me, links})});
-  $("#connmsg").textContent = r.ok ? "saved ✓" : "failed (bad key?)";
+  $("#connmsg").textContent = r.ok ? "saved" : "failed (bad key?)";
   loadEdges();
 };
 
@@ -273,7 +275,7 @@ async function loadSongsAdmin(){
     const d = document.createElement("div"); d.className="prow2";
     d.innerHTML = '<div class="pi"><div class="pqx">'+(i+1)+'. '+esc(s.title)+'</div>'+
       (s.by?'<div class="pcx">'+esc(s.by)+'</div>':'')+'</div>'+
-      '<button class="mini">played ✓</button><button class="mini del">×</button>';
+      '<button class="mini">played</button><button class="mini del">×</button>';
     d.querySelectorAll(".mini")[0].onclick = async () => {
       await fetch("/admin/song/"+s.id,{method:"POST",headers:H,body:JSON.stringify({played:true})});
       loadSongsAdmin();
@@ -291,10 +293,10 @@ async function loadSpotify(){
   const st = await (await fetch("/music/status")).json();
   const s = $("#spotstatus"), btn = $("#spotconnect");
   if(!st.configured){
-    s.innerHTML = "⚠ Not configured — add SPOTIFY_CLIENT_ID / SPOTIFY_CLIENT_SECRET to the server .env.";
+    s.innerHTML = "Not configured — add SPOTIFY_CLIENT_ID / SPOTIFY_CLIENT_SECRET to the server .env.";
     btn.hidden = true; $("#nowbox").hidden = true;
   } else if(st.connected){
-    s.innerHTML = "✓ Connected. Keep Spotify playing on a device.";
+    s.innerHTML = "Connected. Keep Spotify playing on a device.";
     btn.hidden = false; btn.textContent = "reconnect Spotify"; btn.href = "/spotify/login?key="+encodeURIComponent(key);
     $("#nowbox").hidden = false; loadNow();
   } else {
