@@ -144,6 +144,17 @@ def guest_detail(gid: int):
     return {"id": r["id"], "name": r["name"], "contacts": json.loads(r["contacts"])}
 
 
+@app.post("/guest")
+async def add_self(request: Request):
+    """Public self-add for walk-in +1s. Trust-based, present immediately."""
+    name = str((await request.json()).get("name", "")).strip()
+    if not name:
+        raise HTTPException(400, "name required")
+    with closing(db()) as conn, conn:
+        cur = conn.execute("INSERT INTO guests (name, present, contacts) VALUES (?, 1, '[]')", (name[:40],))
+    return {"ok": True, "id": cur.lastrowid}
+
+
 @app.post("/checkin/{gid}")
 def checkin(gid: int):
     """Guest self-check-in — marks themselves present. Trust-based, no auth."""

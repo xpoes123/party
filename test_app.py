@@ -112,6 +112,11 @@ def test():
     assert c.post("/music/queue", json={"uri": "not-a-track"}).status_code == 400
     assert c.get("/spotify/login?key=testkey").status_code == 409  # configured check
 
+    # walk-in self-add: public, present immediately
+    wid = c.post("/guest", json={"name": "Walkin"}).json()["id"]
+    assert any(g["name"] == "Walkin" for g in c.get("/state").json()["guests"])
+    assert c.post("/guest", json={"name": "   "}).status_code == 400
+
     # anyone can pull anyone's contacts (graph tap) — no connection required
     assert c.get(f"/guest/{alice}").json()["contacts"] == [{"label": "insta", "value": "@alice"}]
     assert c.get("/guest/9999").status_code == 404

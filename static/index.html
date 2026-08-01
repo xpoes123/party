@@ -45,6 +45,15 @@ h1{font-family:var(--display);font-weight:600;font-size:clamp(30px,8vw,42px);mar
 .dot{width:7px;height:7px;border-radius:50%;flex:none;background:var(--green)}
 .pickbtn.away{opacity:.5}
 .pickbtn.away .dot{background:var(--faint)}
+.pick-add{display:flex;gap:8px;margin-top:16px}
+.pick-add input{flex:1;background:var(--card);border:1px solid var(--line);border-radius:var(--r);
+  color:var(--ink);padding:14px;font-family:var(--body);font-size:15px}
+.pick-add input:focus{outline:none;border-color:var(--blue)}
+.pick-add input::placeholder{color:var(--muted)}
+.pick-add button{border:1px solid var(--blue);background:var(--blue);color:var(--bg);border-radius:var(--r);
+  padding:0 20px;font-family:var(--mono);font-weight:500;font-size:11px;letter-spacing:.08em;
+  text-transform:uppercase;cursor:pointer;white-space:nowrap}
+.pick-add button:active{transform:scale(.97)}
 
 /* tabs */
 nav{position:fixed;left:0;right:0;bottom:0;z-index:10;
@@ -169,6 +178,10 @@ nav{position:fixed;left:0;right:0;bottom:0;z-index:10;
   <section class="pick" id="pick">
     <h2>who are you?</h2>
     <div class="pickgrid" id="pickgrid"></div>
+    <div class="pick-add">
+      <input id="newname" placeholder="not on the list? add your name" autocomplete="off" maxlength="40">
+      <button id="addself">add me</button>
+    </div>
   </section>
 
   <!-- app -->
@@ -312,6 +325,19 @@ async function renderPick(){
     g.appendChild(b);
   }
 }
+async function addSelf(){
+  const name = $("#newname").value.trim();
+  if(!name) return;
+  const r = await fetch("/guest", {method:"POST", headers:{"Content-Type":"application/json"},
+    body: JSON.stringify({name})});
+  if(!r.ok) return;
+  const { id } = await r.json();
+  $("#newname").value = "";
+  me = id; localStorage.setItem("me_id", me); load();
+}
+$("#addself").onclick = addSelf;
+$("#newname").addEventListener("keydown", e => { if(e.key==="Enter") addSelf(); });
+
 function renderMeTag(){
   const mine = state.guests.find(x=>x.id===me);
   const t = $("#metag");
