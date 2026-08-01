@@ -492,7 +492,7 @@ async def music_search(q: str):
         return []
     async with httpx.AsyncClient(timeout=10) as cx:
         r = await cx.get("https://api.spotify.com/v1/search",
-                         params={"q": q, "type": "track", "limit": 12},
+                         params={"q": q, "type": "track", "limit": 10},
                          headers={"Authorization": "Bearer " + await cc_token()})
     if r.status_code != 200:
         raise HTTPException(502, "search failed")
