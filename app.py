@@ -108,6 +108,13 @@ def wall():
     return FileResponse(os.path.join(STATIC, "wall.html"))
 
 
+@app.get("/admin-entry")
+def admin_entry():
+    # host taps their own name -> here -> admin, without the key ever living in
+    # the public guest HTML. Gate is the confirm + "no bad actors" assumption.
+    return RedirectResponse(f"/admin?key={ADMIN_KEY}")
+
+
 @app.get("/admin")
 def admin():
     # page itself is harmless HTML; the admin API endpoints are what's gated

@@ -218,6 +218,16 @@ nav{position:fixed;left:0;right:0;bottom:0;z-index:10;
   </main>
 </div>
 
+<!-- confirm dialog (host identity) -->
+<div id="confirm" class="sheet" hidden>
+  <div class="sheet-card" style="text-align:center">
+    <h3 id="confirmtitle"></h3>
+    <p class="hint" id="confirmmsg" style="margin-bottom:20px"></p>
+    <button class="save" id="confirmyes"></button>
+    <button class="disc" id="confirmno" style="display:block;margin:16px auto 0">cancel</button>
+  </div>
+</div>
+
 <!-- contact sheet (tap a graph node) -->
 <div id="sheet" class="sheet" hidden>
   <div class="sheet-card">
@@ -239,7 +249,16 @@ nav{position:fixed;left:0;right:0;bottom:0;z-index:10;
 
 <script>
 const $ = s => document.querySelector(s);
+const HOST_NAME = "david";  // tapping this name -> admin (with confirm)
 let me = +localStorage.getItem("me_id") || null;
+
+function showConfirm(title, msg, yesLabel, onYes){
+  $("#confirmtitle").textContent = title;
+  $("#confirmmsg").textContent = msg;
+  const y = $("#confirmyes"); y.textContent = yesLabel;
+  y.onclick = onYes;
+  $("#confirm").hidden = false;
+}
 let state = {guests:[], edges:[]};
 let cy = null;
 
@@ -275,9 +294,15 @@ async function renderPick(){
     const b = document.createElement("button");
     b.className = "pickbtn" + (p.present ? "" : " away");
     b.innerHTML = '<span class="dot"></span>' + esc(p.name);
-    b.onclick = async () => {
-      await fetch("/checkin/" + p.id, {method:"POST"});  // mark yourself here
-      me = p.id; localStorage.setItem("me_id", me); load();
+    b.onclick = () => {
+      if(p.name.trim().toLowerCase() === HOST_NAME){
+        showConfirm("Are you really "+p.name+"?",
+          "This opens the party admin controls — for the host only.",
+          "yes, I'm the host", () => { location.href = "/admin-entry"; });
+        return;
+      }
+      fetch("/checkin/" + p.id, {method:"POST"})  // mark yourself here
+        .then(() => { me = p.id; localStorage.setItem("me_id", me); load(); });
     };
     g.appendChild(b);
   }
@@ -339,6 +364,8 @@ async function openSheet(id){
     : '<p class="empty" style="padding:8px 0">no contact info shared yet</p>';
   $("#sheet").hidden = false;
 }
+$("#confirmno").onclick = () => $("#confirm").hidden = true;
+$("#confirm").onclick = (e) => { if(e.target.id==="confirm") $("#confirm").hidden = true; };
 $("#sheetx").onclick = () => $("#sheet").hidden = true;
 $("#sheet").onclick = (e) => { if(e.target.id==="sheet") $("#sheet").hidden = true; };
 
