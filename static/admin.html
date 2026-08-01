@@ -296,7 +296,8 @@ async function loadSpotify(){
     s.innerHTML = "Not configured — add SPOTIFY_CLIENT_ID / SPOTIFY_CLIENT_SECRET to the server .env.";
     btn.hidden = true; $("#nowbox").hidden = true;
   } else if(st.connected){
-    s.innerHTML = "Connected. Keep Spotify playing on a device.";
+    const base = st.base ? " · autopilot: "+st.base+" base songs"+(st.primed?" (active)":"") : "";
+    s.innerHTML = "Connected. Keep Spotify playing on a device." + base;
     btn.hidden = false; btn.textContent = "reconnect Spotify"; btn.href = "/spotify/login?key="+encodeURIComponent(key);
     $("#nowbox").hidden = false; loadNow();
   } else {

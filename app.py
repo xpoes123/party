@@ -4,9 +4,12 @@ Guests scan a QR, pick who they are, tap others to connect. Connecting swaps
 contact info (hidden until connected) and draws an edge on a live graph.
 Host controls who's `present` via /admin. See docs/superpowers/specs.
 """
+import asyncio
 import base64
 import json
 import os
+import random
+import re
 import secrets
 import sqlite3
 import time
@@ -26,6 +29,12 @@ SPOTIFY_ID = os.environ.get("SPOTIFY_CLIENT_ID", "")
 SPOTIFY_SECRET = os.environ.get("SPOTIFY_CLIENT_SECRET", "")
 SPOTIFY_REDIRECT = os.environ.get("SPOTIFY_REDIRECT_URI", "https://party.djiang.xyz/spotify/callback")
 SPOTIFY_SCOPES = "user-modify-playback-state user-read-playback-state user-read-currently-playing"
+
+# base playlist the autopilot draws from when the guest queue runs low. dev-mode
+# apps can't read playlist tracks via the API (403), so we scrape the public embed.
+BASE_PLAYLIST_ID = os.environ.get("BASE_PLAYLIST_ID", "4SnVveu2gorR1fPe81Un4A")
+AUTOPILOT_SEED = 10   # songs queued on first prime
+AUTOPILOT_FLOOR = 3   # keep at least this many upcoming
 
 app = FastAPI()
 
@@ -470,7 +479,8 @@ async def user_token():
 
 @app.get("/music/status")
 def music_status():
-    return {"configured": spotify_configured(), "connected": bool(kv_get("spotify_refresh"))}
+    return {"configured": spotify_configured(), "connected": bool(kv_get("spotify_refresh")),
+            "base": _base["loaded"], "primed": _base["primed"]}
 
 
 @app.get("/spotify/login")
@@ -581,6 +591,87 @@ async def music_now():
     return {"connected": True,
             "playing": _track(cur) if cur else None,
             "queue": [_track(t) for t in (j.get("queue") or [])[:8]]}
+
+
+# ---- autopilot: keep music flowing from a base playlist ----
+_base = {"order": [], "idx": 0, "primed": False, "loaded": 0}
+
+
+async def load_base():
+    """Scrape the public embed page for the base playlist's track URIs."""
+    url = f"https://open.spotify.com/embed/playlist/{BASE_PLAYLIST_ID}"
+    async with httpx.AsyncClient(timeout=12) as cx:
+        r = await cx.get(url, headers={"User-Agent": "Mozilla/5.0"})
+    m = re.search(r'id="__NEXT_DATA__"[^>]*>(.*?)</script>', r.text, re.S)
+    if not m:
+        return
+    def find_list(o):
+        if isinstance(o, dict):
+            if isinstance(o.get("trackList"), list):
+                return o["trackList"]
+            for v in o.values():
+                got = find_list(v)
+                if got:
+                    return got
+        elif isinstance(o, list):
+            for v in o:
+                got = find_list(v)
+                if got:
+                    return got
+    tl = find_list(json.loads(m.group(1))) or []
+    uris = [t["uri"] for t in tl if str(t.get("uri", "")).startswith("spotify:track:")]
+    random.shuffle(uris)
+    _base["order"], _base["idx"], _base["loaded"] = uris, 0, len(uris)
+
+
+def next_base_uri():
+    if not _base["order"]:
+        return None
+    if _base["idx"] >= len(_base["order"]):
+        random.shuffle(_base["order"])
+        _base["idx"] = 0
+    uri = _base["order"][_base["idx"]]
+    _base["idx"] += 1
+    return uri
+
+
+async def autopilot():
+    await asyncio.sleep(12)
+    while True:
+        try:
+            if kv_get("spotify_refresh"):
+                if not _base["order"]:
+                    await load_base()
+                if _base["order"]:
+                    tok = await user_token()
+                    async with httpx.AsyncClient(timeout=10) as cx:
+                        q = await cx.get("https://api.spotify.com/v1/me/player/queue",
+                                         headers={"Authorization": "Bearer " + tok})
+                        if q.status_code == 200:
+                            data = q.json()
+                            # only act while something's actually playing on a device
+                            if data.get("currently_playing"):
+                                upcoming = len(data.get("queue") or [])
+                                target = AUTOPILOT_SEED if not _base["primed"] else AUTOPILOT_FLOOR
+                                added = 0
+                                for _ in range(max(0, target - upcoming)):
+                                    uri = next_base_uri()
+                                    r = await cx.post("https://api.spotify.com/v1/me/player/queue",
+                                                      params={"uri": uri},
+                                                      headers={"Authorization": "Bearer " + tok})
+                                    if r.status_code not in (200, 204):
+                                        break
+                                    added += 1
+                                if upcoming >= AUTOPILOT_FLOOR or added:
+                                    _base["primed"] = True
+        except Exception:
+            pass
+        await asyncio.sleep(60)
+
+
+@app.on_event("startup")
+async def _start_autopilot():
+    asyncio.create_task(autopilot())
 
 
 # ---- pages: wall deck, scenes, welcome ----
