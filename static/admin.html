@@ -41,12 +41,31 @@ h2{font-family:var(--mono);font-size:12px;font-weight:500;letter-spacing:.14em;t
 #upnext{margin-top:12px}
 .links{color:var(--muted);font-size:12px;margin-top:20px;font-family:var(--mono)}
 .links a{color:var(--blue)}
+.g{display:flex;align-items:center;gap:12px;padding:9px 0;border-bottom:1px solid var(--line)}
+.g:last-child{border-bottom:0}
+.g .nm{font-weight:500;font-size:15px}
+.toggle{position:relative;width:46px;height:26px;flex:none;border:0;border-radius:999px;cursor:pointer;background:var(--card2);transition:.15s}
+.toggle.on{background:var(--green)}
+.toggle::after{content:"";position:absolute;top:3px;left:3px;width:20px;height:20px;border-radius:50%;background:#c0caf5;transition:.15s}
+.toggle.on::after{transform:translateX(20px);background:#1a1b26}
+.addrow{display:flex;gap:8px;margin-top:12px}
+.addrow input{flex:1;background:var(--bg);border:1px solid var(--line);border-radius:var(--r-sm);color:var(--ink);padding:11px;font-family:var(--body);font-size:14px}
+.addrow input:focus{outline:none;border-color:var(--blue)}
+.addrow input::placeholder{color:var(--faint)}
+.addrow button{border:1px solid var(--blue);background:var(--blue);color:var(--bg);border-radius:var(--r-sm);padding:0 16px;font-family:var(--mono);font-size:11px;letter-spacing:.08em;text-transform:uppercase;cursor:pointer}
 </style>
 </head>
 <body>
 <div class="wrap">
   <h1>party admin</h1>
-  <p class="sub">music control</p>
+  <p class="sub">you control who's here + the music</p>
+
+  <div class="card">
+    <h2>who's here</h2>
+    <p class="cc" id="hcount" style="margin:-6px 0 12px">…</p>
+    <div id="guestlist"><p class="cc">loading…</p></div>
+    <div class="addrow"><input id="newname" placeholder="add a walk-in" maxlength="40"><button id="addbtn">add</button></div>
+  </div>
 
   <div class="card">
     <h2>music</h2>
@@ -138,6 +157,34 @@ document.querySelectorAll(".ctrl[data-act]").forEach(b=>b.onclick=async()=>{
   if(!r.ok){ const e=await r.json().catch(()=>({})); alert(e.detail||"control failed"); }
   setTimeout(loadNow, 400);
 });
+
+// ---- who's here (host-only check-in) ----
+async function loadGuests(){
+  const r = await fetch("/admin/guests", {headers:{"X-Admin-Key":key}});
+  if(!r.ok){ $("#guestlist").innerHTML = '<p class="cc">bad admin key — check the URL.</p>'; return; }
+  const gs = await r.json();
+  const here = gs.filter(g=>g.present).length;
+  $("#hcount").textContent = here+" of "+gs.length+" marked here — only they appear in the wall games.";
+  const box = $("#guestlist");
+  box.innerHTML = gs.length ? "" : '<p class="cc">no one yet — add walk-ins below.</p>';
+  for(const g of gs){
+    const row = document.createElement("div"); row.className="g";
+    row.innerHTML = '<div class="nm">'+esc(g.name)+'</div><div style="flex:1"></div>'+
+      '<button class="toggle'+(g.present?' on':'')+'"></button>';
+    row.querySelector(".toggle").onclick = async () => {
+      await fetch("/admin/present/"+g.id,{method:"POST",headers:H,body:JSON.stringify({present:!g.present})});
+      loadGuests();
+    };
+    box.appendChild(row);
+  }
+}
+$("#addbtn").onclick = async () => {
+  const n = $("#newname").value.trim(); if(!n) return;
+  await fetch("/admin/guest",{method:"POST",headers:H,body:JSON.stringify({name:n,contacts:[]})});
+  $("#newname").value=""; loadGuests();
+};
+$("#newname").addEventListener("keydown", e => { if(e.key==="Enter") $("#addbtn").click(); });
+loadGuests(); setInterval(loadGuests, 5000);
 
 loadSpotify();
 setInterval(loadSpotify, 5000);
