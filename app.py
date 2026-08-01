@@ -127,6 +127,16 @@ def roster():
     return [{"id": r["id"], "name": r["name"], "present": bool(r["present"])} for r in rows]
 
 
+@app.get("/guest/{gid}")
+def guest_detail(gid: int):
+    """Anyone's name + contacts — for tapping a node on the graph."""
+    with closing(db()) as conn:
+        r = conn.execute("SELECT id, name, contacts FROM guests WHERE id=?", (gid,)).fetchone()
+    if not r:
+        raise HTTPException(404, "no such guest")
+    return {"id": r["id"], "name": r["name"], "contacts": json.loads(r["contacts"])}
+
+
 @app.post("/checkin/{gid}")
 def checkin(gid: int):
     """Guest self-check-in — marks themselves present. Trust-based, no auth."""
@@ -513,6 +523,27 @@ async def music_queue(request: Request):
         raise HTTPException(409, "no active device — start playing Spotify on a device first")
     if r.status_code not in (200, 204):
         raise HTTPException(502, f"queue failed: {r.text[:150]}")
+    return {"ok": True}
+
+
+@app.post("/music/control")
+async def music_control(request: Request):
+    """Host playback control: next / pause / play. Spotify's API can't remove a
+    specific queued item, so 'master control' = skip + pause/play + see the queue."""
+    require_admin(request)
+    action = (await request.json()).get("action")
+    verb, path = {"next": ("POST", "next"), "pause": ("PUT", "pause"),
+                  "play": ("PUT", "play")}.get(action, (None, None))
+    if not verb:
+        raise HTTPException(400, "action must be next/pause/play")
+    tok = await user_token()
+    async with httpx.AsyncClient(timeout=10) as cx:
+        r = await cx.request(verb, f"https://api.spotify.com/v1/me/player/{path}",
+                             headers={"Authorization": "Bearer " + tok})
+    if r.status_code == 404:
+        raise HTTPException(409, "no active device")
+    if r.status_code not in (200, 204):
+        raise HTTPException(502, f"control failed: {r.text[:150]}")
     return {"ok": True}
 
 

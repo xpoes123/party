@@ -112,6 +112,15 @@ def test():
     assert c.post("/music/queue", json={"uri": "not-a-track"}).status_code == 400
     assert c.get("/spotify/login?key=testkey").status_code == 409  # configured check
 
+    # anyone can pull anyone's contacts (graph tap) — no connection required
+    assert c.get(f"/guest/{alice}").json()["contacts"] == [{"label": "insta", "value": "@alice"}]
+    assert c.get("/guest/9999").status_code == 404
+
+    # music control: admin-gated, validates action, needs a connection
+    assert c.post("/music/control", json={"action": "next"}).status_code == 403
+    assert c.post("/music/control", json={"action": "bogus"}, headers=AK).status_code == 400
+    assert c.post("/music/control", json={"action": "next"}, headers=AK).status_code == 409
+
     # admin key enforced
     assert c.get("/admin/guests").status_code == 403
 

@@ -53,6 +53,17 @@ select:focus{outline:none;border-color:var(--pink)}
   padding:8px 12px;cursor:pointer;font-family:inherit;font-size:13px}
 .mini:hover{color:var(--ink)}
 .mini.del:hover{color:#ff7a9c;border-color:#ff7a9c}
+.ctrls{display:flex;gap:10px;margin-top:14px}
+.ctrl{flex:1;border:1px solid var(--line);background:#241338;color:var(--ink);border-radius:12px;
+  padding:14px 0;font-family:inherit;font-weight:700;font-size:15px;cursor:pointer}
+.ctrl:active{transform:scale(.97);border-color:var(--pink)}
+details.card summary{list-style:none;cursor:pointer;color:var(--muted)}
+details.card summary::-webkit-details-marker{display:none}
+details.card summary h2{color:var(--ink)}
+details.card summary::after{content:" ▸";color:var(--muted)}
+details.card[open] summary::after{content:" ▾"}
+#nowplaying .prow2{border:0}
+#upnext{margin-top:12px}
 .links{color:var(--muted);font-size:13px;margin-top:20px}
 .links a{color:var(--gold)}
 </style>
@@ -60,29 +71,32 @@ select:focus{outline:none;border-color:var(--pink)}
 <body>
 <div class="wrap">
   <h1>party admin</h1>
-  <p class="sub">Add guests, control who's <b>present</b>. Only present guests appear in the app + graph.</p>
+  <p class="sub"><span id="headcount">…</span> here — tap to check people in & out.</p>
 
   <div class="card">
-    <h2>guests</h2>
+    <h2>check-in</h2>
     <div id="list"><p class="cc">loading…</p></div>
   </div>
 
   <div class="card">
-    <h2>connections</h2>
-    <p class="cc" style="margin:-6px 0 14px">Pick a person, set how well they know each other (0–100%). 0 = not connected. Preseed before the party; guests can still connect live.</p>
-    <select id="who"><option value="">— pick a person —</option></select>
-    <div id="links"></div>
-    <button class="big" id="saveconns" style="margin-top:14px" hidden>save connections</button>
-    <p class="cc" id="connmsg" style="text-align:center;margin-top:10px"></p>
+    <h2>music control</h2>
+    <div id="spotstatus" class="cc">checking…</div>
+    <a class="big" id="spotconnect" style="display:block;text-align:center;text-decoration:none;margin-top:12px" hidden>connect Spotify</a>
+    <div id="nowbox" hidden>
+      <div id="nowplaying"></div>
+      <div class="ctrls">
+        <button class="ctrl" data-act="play">▶ play</button>
+        <button class="ctrl" data-act="pause">⏸ pause</button>
+        <button class="ctrl" data-act="next">⏭ skip</button>
+      </div>
+      <div id="upnext"></div>
+      <p class="cc" style="margin-top:10px">Spotify can't remove a specific queued song — use skip to move past one.</p>
+    </div>
   </div>
 
   <div class="card">
-    <h2>add a guest</h2>
-    <div class="row"><input id="name" placeholder="name"></div>
-    <div id="crows"></div>
-    <button class="add" id="addrow">+ add contact info</button>
-    <button class="big" id="addbtn">add guest</button>
-    <p class="err" id="err"></p>
+    <h2>song queue (text fallback)</h2>
+    <div id="songadmin"><p class="cc">loading…</p></div>
   </div>
 
   <div class="card">
@@ -93,16 +107,23 @@ select:focus{outline:none;border-color:var(--pink)}
     <div id="polllist" style="margin-top:16px"></div>
   </div>
 
-  <div class="card">
-    <h2>music (Spotify)</h2>
-    <div id="spotstatus" class="cc">checking…</div>
-    <a class="big" id="spotconnect" style="display:block;text-align:center;text-decoration:none;margin-top:12px" hidden>connect Spotify</a>
-  </div>
+  <details class="card">
+    <summary><h2 style="display:inline">connections (setup)</h2></summary>
+    <p class="cc" style="margin:8px 0 14px">Pick a person, set how well they know each other (0–100%). 0 = not connected.</p>
+    <select id="who"><option value="">— pick a person —</option></select>
+    <div id="links"></div>
+    <button class="big" id="saveconns" style="margin-top:14px" hidden>save connections</button>
+    <p class="cc" id="connmsg" style="text-align:center;margin-top:10px"></p>
+  </details>
 
-  <div class="card">
-    <h2>song queue (text fallback)</h2>
-    <div id="songadmin"><p class="cc">loading…</p></div>
-  </div>
+  <details class="card">
+    <summary><h2 style="display:inline">add a guest (setup)</h2></summary>
+    <div class="row" style="margin-top:12px"><input id="name" placeholder="name"></div>
+    <div id="crows"></div>
+    <button class="add" id="addrow">+ add contact info</button>
+    <button class="big" id="addbtn">add guest</button>
+    <p class="err" id="err"></p>
+  </details>
 
   <p class="links">Guest link: <a href="/" target="_blank">/</a> &nbsp;·&nbsp;
     Wall: <a href="/wall" target="_blank">/wall</a> &nbsp;·&nbsp;
@@ -126,6 +147,7 @@ async function load(){
   if(!r.ok){ $("#list").innerHTML = '<p class="err">Bad admin key — check the URL.</p>'; return; }
   const gs = await r.json();
   GUESTS = gs; populateWho(); loadEdges();
+  $("#headcount").textContent = gs.filter(g=>g.present).length + " of " + gs.length;
   const l = $("#list");
   if(!gs.length){ l.innerHTML = '<p class="cc">No guests yet — add some below.</p>'; return; }
   l.innerHTML = "";
@@ -263,21 +285,40 @@ async function loadSongsAdmin(){
   });
 }
 
-// ---- spotify status ----
+// ---- spotify status + master control ----
 async function loadSpotify(){
   const st = await (await fetch("/music/status")).json();
   const s = $("#spotstatus"), btn = $("#spotconnect");
   if(!st.configured){
     s.innerHTML = "⚠ Not configured — add SPOTIFY_CLIENT_ID / SPOTIFY_CLIENT_SECRET to the server .env.";
-    btn.hidden = true;
+    btn.hidden = true; $("#nowbox").hidden = true;
   } else if(st.connected){
-    s.innerHTML = "✓ Connected. Guests can queue songs. Keep Spotify playing on a device.";
+    s.innerHTML = "✓ Connected. Keep Spotify playing on a device.";
     btn.hidden = false; btn.textContent = "reconnect Spotify"; btn.href = "/spotify/login?key="+encodeURIComponent(key);
+    $("#nowbox").hidden = false; loadNow();
   } else {
-    s.innerHTML = "Configured but not connected yet — click below to link your Spotify.";
+    s.innerHTML = "Configured but not connected — link your Spotify:";
     btn.hidden = false; btn.textContent = "connect Spotify"; btn.href = "/spotify/login?key="+encodeURIComponent(key);
+    $("#nowbox").hidden = true;
   }
 }
+async function loadNow(){
+  const d = await (await fetch("/music/now")).json();
+  $("#nowplaying").innerHTML = d.playing
+    ? '<div class="prow2"><div class="pi"><div class="pqx">▶ '+esc(d.playing.title)+'</div>'+
+      '<div class="pcx">'+esc(d.playing.artist)+'</div></div></div>'
+    : '<p class="cc">Nothing playing — start a song in Spotify on any device.</p>';
+  $("#upnext").innerHTML = (d.queue||[]).length
+    ? '<div class="cc" style="margin-bottom:6px">up next</div>' + d.queue.map(t=>
+        '<div class="prow2"><div class="pi"><div class="pqx">'+esc(t.title)+'</div>'+
+        '<div class="pcx">'+esc(t.artist)+'</div></div></div>').join("")
+    : "";
+}
+document.querySelectorAll(".ctrl").forEach(b=>b.onclick=async()=>{
+  const r = await fetch("/music/control",{method:"POST",headers:H,body:JSON.stringify({action:b.dataset.act})});
+  if(!r.ok){ const e=await r.json().catch(()=>({})); alert(e.detail||"control failed"); }
+  setTimeout(loadNow, 400);
+});
 
 function esc(s){return String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]))}
 load(); loadPolls(); loadSongsAdmin(); loadSpotify();

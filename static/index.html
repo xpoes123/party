@@ -103,6 +103,18 @@ nav{position:fixed;left:0;right:0;bottom:0;z-index:10;
 .saved{color:var(--grn);text-align:center;font-size:14px;margin-top:10px;height:18px}
 .empty{text-align:center;color:var(--muted);padding:40px 0}
 
+/* contact sheet */
+.sheet{position:fixed;inset:0;z-index:50;background:rgba(6,4,12,.6);backdrop-filter:blur(3px);
+  display:flex;align-items:flex-end;animation:fade .2s ease}
+.sheet-card{background:var(--card);border:1px solid var(--line);border-radius:22px 22px 0 0;
+  width:100%;max-width:560px;margin:0 auto;padding:24px 20px calc(30px + env(safe-area-inset-bottom));
+  position:relative;animation:slideup .25s cubic-bezier(.22,1,.36,1)}
+@keyframes slideup{from{transform:translateY(100%)}to{transform:none}}
+.sheet-card h3{font-family:"Bricolage Grotesque";font-size:26px;margin:0 0 16px}
+.sheet-x{position:absolute;top:16px;right:16px;background:#241338;border:1px solid var(--line);
+  color:var(--muted);border-radius:50%;width:36px;height:36px;font-size:20px;cursor:pointer}
+.sheet .contacts{display:flex;flex-wrap:wrap;gap:8px}
+
 /* polls */
 .poll{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:18px;margin-bottom:14px}
 .poll .q{font-family:"Bricolage Grotesque";font-weight:600;font-size:19px;margin:0 0 14px}
@@ -161,6 +173,7 @@ nav{position:fixed;left:0;right:0;bottom:0;z-index:10;
     </section>
 
     <section class="view" id="v-graph">
+      <p class="count">tap anyone to see their contact info</p>
       <div id="cy"></div>
     </section>
 
@@ -202,6 +215,15 @@ nav{position:fixed;left:0;right:0;bottom:0;z-index:10;
       </div>
     </section>
   </main>
+</div>
+
+<!-- contact sheet (tap a graph node) -->
+<div id="sheet" class="sheet" hidden>
+  <div class="sheet-card">
+    <button class="sheet-x" id="sheetx">×</button>
+    <h3 id="sheetname"></h3>
+    <div id="sheetcontacts"></div>
+  </div>
 </div>
 
 <nav id="nav" hidden>
@@ -306,6 +328,19 @@ function chip(c){
   return href ? '<a class="chip" href="'+esc(href)+'" target="_blank" rel="noopener">'+inner+'</a>'
               : '<span class="chip">'+inner+'</span>';
 }
+// tap a graph node -> pull anyone's contacts
+async function openSheet(id){
+  const g = await (await fetch("/guest/"+id)).json();
+  $("#sheetname").textContent = g.name;
+  const cs = g.contacts || [];
+  $("#sheetcontacts").innerHTML = cs.length
+    ? '<div class="contacts">'+cs.map(c=>chip(c)).join("")+'</div>'
+    : '<p class="empty" style="padding:8px 0">no contact info shared yet</p>';
+  $("#sheet").hidden = false;
+}
+$("#sheetx").onclick = () => $("#sheet").hidden = true;
+$("#sheet").onclick = (e) => { if(e.target.id==="sheet") $("#sheet").hidden = true; };
+
 async function act(path, other){
   await fetch(path, {method:"POST", headers:{"Content-Type":"application/json"},
     body: JSON.stringify({a:me, b:other})});
@@ -318,7 +353,14 @@ const LAYOUT = {name:"cose", animate:false, padding:30,
 function graphEls(){
   return state.guests.map(p=>({data:{id:"n"+p.id, label:p.name, me:p.id===me}}))
     .concat(state.edges.map(e=>({data:{
-      id:"e"+e.a+"_"+e.b, source:"n"+e.a, target:"n"+e.b, weight:e.weight}})));
+      id:"e"+e.a+"_"+e.b, source:"n"+e.a, target:"n"+e.b, weight:e.weight,
+      mine:(e.a===me||e.b===me)}})));
+}
+function centerMe(){
+  if(!cy) return;
+  const m = cy.$('#n'+me);
+  if(m.length){ cy.animate({center:{eles:m}, zoom:1.1}, {duration:400}); }
+  else { cy.fit(null,30); }
 }
 function renderGraph(){
   const els = graphEls();
@@ -331,16 +373,21 @@ function renderGraph(){
           "font-family":"Instrument Sans","font-size":13,"font-weight":600,
           "text-valign":"bottom","text-margin-y":6,"width":26,"height":26,
           "border-width":2,"border-color":"#1b1030","text-outline-color":"#0a0714","text-outline-width":3}},
-        {selector:'node[?me]',style:{"background-color":"#ffd36b","width":40,"height":40,
-          "border-color":"#ff4d9d","border-width":3}},
-        {selector:"edge",style:{"width":"mapData(weight,0,100,1.5,6)","line-color":"#59e0ff",
-          "opacity":"mapData(weight,0,100,.35,.85)","curve-style":"straight"}}
+        {selector:'node[?me]',style:{"background-color":"#ffd36b","width":44,"height":44,
+          "border-color":"#ff4d9d","border-width":4,"font-size":16,"z-index":10}},
+        // my own connections pop; everyone else's fade into the background
+        {selector:"edge",style:{"width":"mapData(weight,0,100,1.5,5)","line-color":"#3a4a6a",
+          "opacity":.28,"curve-style":"straight"}},
+        {selector:'edge[?mine]',style:{"line-color":"#ffd36b","opacity":"mapData(weight,0,100,.5,1)",
+          "width":"mapData(weight,0,100,2.5,7)","z-index":9}}
       ],
       layout:LAYOUT
     });
+    cy.one("layoutstop", centerMe);
+    cy.on("tap", "node", evt => openSheet(+evt.target.id().slice(1)));
   } else {
     cy.json({elements:els});
-    cy.layout(LAYOUT).run();
+    cy.layout(LAYOUT).run().promiseOn("layoutstop").then(centerMe);
   }
 }
 
