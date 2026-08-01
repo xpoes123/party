@@ -662,7 +662,7 @@ async def autopilot():
                                     if r.status_code not in (200, 204):
                                         break
                                     added += 1
-                                if upcoming >= AUTOPILOT_FLOOR or added:
+                                if added:  # seed-10 only "spends" once we actually top up a low queue
                                     _base["primed"] = True
         except Exception:
             pass
