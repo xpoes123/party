@@ -20,6 +20,8 @@ body{background:transparent;color:#f5eeff;font-family:"Instrument Sans",system-u
 .num{font-family:"Bricolage Grotesque";font-weight:800;font-size:clamp(24px,2.6vw,40px);color:#4a3a68;
   min-width:1.4em;text-align:center}
 .now .num{color:#7cf6a0}
+.art{width:clamp(48px,5vw,80px);height:clamp(48px,5vw,80px);border-radius:10px;flex:none;
+  object-fit:cover;background:#241338}
 .info{flex:1;min-width:0}
 .t{font-family:"Bricolage Grotesque";font-weight:600;font-size:clamp(20px,2.4vw,38px);
   white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -33,18 +35,28 @@ body{background:transparent;color:#f5eeff;font-family:"Instrument Sans",system-u
 <div class="head"><span class="title">up next</span><span class="sub">🎧 request from your phone</span></div>
 <div class="list" id="list"><p class="empty">no requests yet — add one!</p></div>
 <script>
+function row(t, idx, now){
+  return '<div class="row'+(now?' now':'')+'">'+
+    '<div class="num">'+(now?'▶':idx)+'</div>'+
+    (t.art?'<img class="art" src="'+esc(t.art)+'">':'')+
+    '<div class="info"><div class="t">'+esc(t.title)+'</div>'+
+      (t.artist||t.by?'<div class="by">'+esc(t.artist||t.by)+'</div>':'')+'</div>'+
+    (now?'<div class="tag">now playing</div>':'')+'</div>';
+}
 async function load(){
-  const songs=await (await fetch("/songs")).json();
   const l=document.getElementById("list");
-  if(!songs.length){ l.innerHTML='<p class="empty">no requests yet — add one from your phone!</p>'; return; }
-  l.innerHTML=songs.slice(0,8).map((s,i)=>{
-    const now=i===0;
-    return '<div class="row'+(now?' now':'')+'">'+
-      '<div class="num">'+(now?'▶':i+1)+'</div>'+
-      '<div class="info"><div class="t">'+esc(s.title)+'</div>'+
-        (s.by?'<div class="by">'+esc(s.by)+'</div>':'')+'</div>'+
-      (now?'<div class="tag">now playing</div>':'')+'</div>';
-  }).join("");
+  const st=await (await fetch("/music/status")).json();
+  if(st.connected){
+    const d=await (await fetch("/music/now")).json();
+    const rows=[];
+    if(d.playing) rows.push(row(d.playing,0,true));
+    (d.queue||[]).forEach((t,i)=>rows.push(row(t,i+1,false)));
+    l.innerHTML = rows.length ? rows.join("") : '<p class="empty">nothing playing — request a song!</p>';
+    return;
+  }
+  const songs=await (await fetch("/songs")).json();
+  l.innerHTML = songs.length ? songs.slice(0,8).map((s,i)=>row(s,i+1,i===0)).join("")
+    : '<p class="empty">no requests yet — add one from your phone!</p>';
 }
 function esc(s){return String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]))}
 load();

@@ -104,6 +104,14 @@ def test():
     assert c.get("/songs").json() == []
     assert c.post(f"/admin/song/{s2}", json={"delete": True}).status_code == 403
 
+    # music: unconfigured in tests -> graceful, not crashing
+    ms = c.get("/music/status").json()
+    assert ms["configured"] is False and ms["connected"] is False
+    assert c.get("/music/search?q=hi").status_code == 409
+    assert c.get("/music/now").json() == {"connected": False, "playing": None, "queue": []}
+    assert c.post("/music/queue", json={"uri": "not-a-track"}).status_code == 400
+    assert c.get("/spotify/login?key=testkey").status_code == 409  # configured check
+
     # admin key enforced
     assert c.get("/admin/guests").status_code == 403
 

@@ -94,7 +94,13 @@ select:focus{outline:none;border-color:var(--pink)}
   </div>
 
   <div class="card">
-    <h2>song queue</h2>
+    <h2>music (Spotify)</h2>
+    <div id="spotstatus" class="cc">checking…</div>
+    <a class="big" id="spotconnect" style="display:block;text-align:center;text-decoration:none;margin-top:12px" hidden>connect Spotify</a>
+  </div>
+
+  <div class="card">
+    <h2>song queue (text fallback)</h2>
     <div id="songadmin"><p class="cc">loading…</p></div>
   </div>
 
@@ -257,9 +263,25 @@ async function loadSongsAdmin(){
   });
 }
 
+// ---- spotify status ----
+async function loadSpotify(){
+  const st = await (await fetch("/music/status")).json();
+  const s = $("#spotstatus"), btn = $("#spotconnect");
+  if(!st.configured){
+    s.innerHTML = "⚠ Not configured — add SPOTIFY_CLIENT_ID / SPOTIFY_CLIENT_SECRET to the server .env.";
+    btn.hidden = true;
+  } else if(st.connected){
+    s.innerHTML = "✓ Connected. Guests can queue songs. Keep Spotify playing on a device.";
+    btn.hidden = false; btn.textContent = "reconnect Spotify"; btn.href = "/spotify/login?key="+encodeURIComponent(key);
+  } else {
+    s.innerHTML = "Configured but not connected yet — click below to link your Spotify.";
+    btn.hidden = false; btn.textContent = "connect Spotify"; btn.href = "/spotify/login?key="+encodeURIComponent(key);
+  }
+}
+
 function esc(s){return String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]))}
-load(); loadPolls(); loadSongsAdmin();
-setInterval(()=>{ loadPolls(); loadSongsAdmin(); }, 5000);
+load(); loadPolls(); loadSongsAdmin(); loadSpotify();
+setInterval(()=>{ loadPolls(); loadSongsAdmin(); loadSpotify(); }, 5000);
 </script>
 </body>
 </html>

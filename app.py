@@ -4,18 +4,28 @@ Guests scan a QR, pick who they are, tap others to connect. Connecting swaps
 contact info (hidden until connected) and draws an edge on a live graph.
 Host controls who's `present` via /admin. See docs/superpowers/specs.
 """
+import base64
 import json
 import os
+import secrets
 import sqlite3
+import time
+import urllib.parse
 from contextlib import closing
 
+import httpx
 from fastapi import FastAPI, HTTPException, Request
-from fastapi.responses import FileResponse, JSONResponse
+from fastapi.responses import FileResponse, HTMLResponse, JSONResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 
 DB = os.path.join(os.path.dirname(__file__), "party.db")
 STATIC = os.path.join(os.path.dirname(__file__), "static")
 ADMIN_KEY = os.environ.get("PARTY_ADMIN_KEY", "letmein")
+
+SPOTIFY_ID = os.environ.get("SPOTIFY_CLIENT_ID", "")
+SPOTIFY_SECRET = os.environ.get("SPOTIFY_CLIENT_SECRET", "")
+SPOTIFY_REDIRECT = os.environ.get("SPOTIFY_REDIRECT_URI", "https://party.djiang.xyz/spotify/callback")
+SPOTIFY_SCOPES = "user-modify-playback-state user-read-playback-state user-read-currently-playing"
 
 app = FastAPI()
 
@@ -62,6 +72,7 @@ def init():
                 by_name TEXT NOT NULL DEFAULT '',
                 played INTEGER NOT NULL DEFAULT 0
             );
+            CREATE TABLE IF NOT EXISTS kv (k TEXT PRIMARY KEY, v TEXT NOT NULL);
             """
         )
         # migrate older DBs that predate the weight column
@@ -372,6 +383,155 @@ async def admin_song(sid: int, request: Request):
         else:
             conn.execute("UPDATE songs SET played=? WHERE id=?", (1 if body.get("played") else 0, sid))
     return {"ok": True}
+
+
+# ---- spotify ----
+_tok = {"cc": None, "cc_exp": 0, "user": None, "user_exp": 0}
+
+
+def kv_get(k):
+    with closing(db()) as conn:
+        r = conn.execute("SELECT v FROM kv WHERE k=?", (k,)).fetchone()
+    return r["v"] if r else None
+
+
+def kv_set(k, v):
+    with closing(db()) as conn, conn:
+        conn.execute("INSERT INTO kv (k, v) VALUES (?, ?) ON CONFLICT(k) DO UPDATE SET v=excluded.v", (k, v))
+
+
+def spotify_configured():
+    return bool(SPOTIFY_ID and SPOTIFY_SECRET)
+
+
+def _basic():
+    return base64.b64encode(f"{SPOTIFY_ID}:{SPOTIFY_SECRET}".encode()).decode()
+
+
+async def _post_token(data):
+    async with httpx.AsyncClient(timeout=10) as cx:
+        r = await cx.post("https://accounts.spotify.com/api/token", data=data,
+                          headers={"Authorization": "Basic " + _basic()})
+    if r.status_code != 200:
+        raise HTTPException(502, f"spotify token error: {r.text[:200]}")
+    return r.json()
+
+
+async def cc_token():
+    """App-only token for catalog search."""
+    if _tok["cc"] and time.time() < _tok["cc_exp"]:
+        return _tok["cc"]
+    j = await _post_token({"grant_type": "client_credentials"})
+    _tok["cc"], _tok["cc_exp"] = j["access_token"], time.time() + j["expires_in"] - 60
+    return _tok["cc"]
+
+
+async def user_token():
+    """Host token for queue/playback, refreshed from the stored refresh token."""
+    if _tok["user"] and time.time() < _tok["user_exp"]:
+        return _tok["user"]
+    refresh = kv_get("spotify_refresh")
+    if not refresh:
+        raise HTTPException(409, "spotify not connected")
+    j = await _post_token({"grant_type": "refresh_token", "refresh_token": refresh})
+    _tok["user"], _tok["user_exp"] = j["access_token"], time.time() + j["expires_in"] - 60
+    if j.get("refresh_token"):
+        kv_set("spotify_refresh", j["refresh_token"])
+    return _tok["user"]
+
+
+@app.get("/music/status")
+def music_status():
+    return {"configured": spotify_configured(), "connected": bool(kv_get("spotify_refresh"))}
+
+
+@app.get("/spotify/login")
+def spotify_login(request: Request):
+    # browser navigation can't send headers, so gate via ?key= for this one
+    if request.query_params.get("key") != ADMIN_KEY:
+        raise HTTPException(403, "bad admin key")
+    if not spotify_configured():
+        raise HTTPException(409, "set SPOTIFY_CLIENT_ID / SPOTIFY_CLIENT_SECRET first")
+    state = secrets.token_urlsafe(16)
+    kv_set("spotify_state", state)
+    url = "https://accounts.spotify.com/authorize?" + urllib.parse.urlencode({
+        "client_id": SPOTIFY_ID, "response_type": "code", "redirect_uri": SPOTIFY_REDIRECT,
+        "scope": SPOTIFY_SCOPES, "state": state})
+    return RedirectResponse(url)
+
+
+@app.get("/spotify/callback")
+async def spotify_callback(code: str = "", state: str = "", error: str = ""):
+    if error:
+        return HTMLResponse(f"<h1>Spotify auth failed: {error}</h1>", status_code=400)
+    if not state or state != kv_get("spotify_state"):
+        raise HTTPException(400, "bad state")
+    j = await _post_token({"grant_type": "authorization_code", "code": code,
+                           "redirect_uri": SPOTIFY_REDIRECT})
+    kv_set("spotify_refresh", j["refresh_token"])
+    _tok["user"], _tok["user_exp"] = j["access_token"], time.time() + j["expires_in"] - 60
+    return HTMLResponse(
+        "<body style='background:#0a0714;color:#f5eeff;font-family:sans-serif;text-align:center;padding:20vh'>"
+        "<h1 style='color:#7cf6a0'>✓ Spotify connected</h1>"
+        "<p>Guests can now queue songs. Keep Spotify playing on any device.</p></body>")
+
+
+def _track(t):
+    imgs = (t.get("album") or {}).get("images") or []
+    return {"uri": t["uri"], "title": t["name"],
+            "artist": ", ".join(a["name"] for a in t.get("artists", [])),
+            "art": (imgs[-1]["url"] if imgs else "")}
+
+
+@app.get("/music/search")
+async def music_search(q: str):
+    if not spotify_configured():
+        raise HTTPException(409, "spotify not configured")
+    q = q.strip()
+    if not q:
+        return []
+    async with httpx.AsyncClient(timeout=10) as cx:
+        r = await cx.get("https://api.spotify.com/v1/search",
+                         params={"q": q, "type": "track", "limit": 12},
+                         headers={"Authorization": "Bearer " + await cc_token()})
+    if r.status_code != 200:
+        raise HTTPException(502, "search failed")
+    return [_track(t) for t in r.json().get("tracks", {}).get("items", [])]
+
+
+@app.post("/music/queue")
+async def music_queue(request: Request):
+    body = await request.json()
+    uri = body.get("uri", "")
+    if not uri.startswith("spotify:track:"):
+        raise HTTPException(400, "bad track uri")
+    tok = await user_token()
+    async with httpx.AsyncClient(timeout=10) as cx:
+        r = await cx.post("https://api.spotify.com/v1/me/player/queue",
+                          params={"uri": uri}, headers={"Authorization": "Bearer " + tok})
+    if r.status_code == 404:
+        raise HTTPException(409, "no active device — start playing Spotify on a device first")
+    if r.status_code not in (200, 204):
+        raise HTTPException(502, f"queue failed: {r.text[:150]}")
+    return {"ok": True}
+
+
+@app.get("/music/now")
+async def music_now():
+    """Now-playing + up-next for the wall. Empty (not error) when nothing's on."""
+    if not kv_get("spotify_refresh"):
+        return {"connected": False, "playing": None, "queue": []}
+    tok = await user_token()
+    async with httpx.AsyncClient(timeout=10) as cx:
+        r = await cx.get("https://api.spotify.com/v1/me/player/queue",
+                         headers={"Authorization": "Bearer " + tok})
+    if r.status_code != 200:
+        return {"connected": True, "playing": None, "queue": []}
+    j = r.json()
+    cur = j.get("currently_playing")
+    return {"connected": True,
+            "playing": _track(cur) if cur else None,
+            "queue": [_track(t) for t in (j.get("queue") or [])[:8]]}
 
 
 # ---- pages: wall deck, scenes, welcome ----

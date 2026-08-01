@@ -121,9 +121,22 @@ nav{position:fixed;left:0;right:0;bottom:0;z-index:10;
 .song{display:flex;align-items:center;gap:12px;background:var(--card);border:1px solid var(--line);
   border-radius:14px;padding:13px 15px;margin-bottom:10px}
 .song .sn{color:var(--muted);font-weight:700;min-width:1.3em;text-align:center}
-.song .st{flex:1}
-.song .st .stitle{font-weight:600}
-.song .st .sby{color:var(--muted);font-size:12px}
+.song .st{flex:1;min-width:0}
+.song .st .stitle{font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.song .st .sby{color:var(--muted);font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+/* spotify search */
+.trk{display:flex;align-items:center;gap:12px;background:var(--card);border:1px solid var(--line);
+  border-radius:14px;padding:10px 12px;margin-bottom:10px;cursor:pointer;transition:.15s}
+.trk:active{transform:scale(.98);border-color:var(--grn)}
+.trk img{width:48px;height:48px;border-radius:8px;flex:none;background:#241338;object-fit:cover}
+.trk .ti{flex:1;min-width:0}
+.trk .ti .tt{font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.trk .ti .ta{color:var(--muted);font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.trk .add{color:var(--grn);font-weight:700;font-size:22px;flex:none;padding:0 6px}
+.trk.done{border-color:var(--grn);opacity:.7}
+.trk.done .add{content:"✓"}
+.mtoast{text-align:center;color:var(--grn);font-size:14px;height:18px;margin:2px 0 10px}
+.playing{border-color:var(--grn)!important;background:linear-gradient(100deg,rgba(124,246,160,.1),var(--card))!important}
 </style>
 </head>
 <body>
@@ -156,12 +169,26 @@ nav{position:fixed;left:0;right:0;bottom:0;z-index:10;
     </section>
 
     <section class="view" id="v-songs">
-      <div class="me-card" style="margin-bottom:14px">
-        <h3>request a song</h3>
-        <div class="crow"><input id="songtitle" placeholder="song + artist"></div>
-        <button class="save" id="songadd">add to queue</button>
+      <!-- spotify search (when connected) -->
+      <div id="spotifyui" hidden>
+        <div class="me-card" style="margin-bottom:14px">
+          <h3>add a song 🎧</h3>
+          <p class="hint">Search Spotify — your pick drops into the party queue.</p>
+          <div class="crow"><input id="msearch" placeholder="song or artist…" autocomplete="off"></div>
+        </div>
+        <div id="mresults"></div>
+        <h3 style="font-family:'Bricolage Grotesque';margin:22px 2px 12px">coming up</h3>
+        <div id="mqueue"></div>
       </div>
-      <div id="songbox"></div>
+      <!-- text fallback (when Spotify not connected) -->
+      <div id="textui" hidden>
+        <div class="me-card" style="margin-bottom:14px">
+          <h3>request a song</h3>
+          <div class="crow"><input id="songtitle" placeholder="song + artist"></div>
+          <button class="save" id="songadd">add to queue</button>
+        </div>
+        <div id="songbox"></div>
+      </div>
     </section>
 
     <section class="view" id="v-me">
@@ -374,10 +401,64 @@ async function vote(pid,choice){
 }
 
 // ---- songs ----
+let spotifyOn = null;
 async function renderSongs(){
+  const st = await (await fetch("/music/status")).json();
+  spotifyOn = st.connected;
+  $("#spotifyui").hidden = !spotifyOn;
+  $("#textui").hidden = spotifyOn;
+  if(spotifyOn) refreshQueue(); else renderTextSongs();
+}
+async function refreshQueue(){
+  const d = await (await fetch("/music/now")).json();
+  const box = $("#mqueue");
+  let html = "";
+  if(d.playing) html += trkRow(d.playing, "▶ now playing", true);
+  html += (d.queue||[]).map(t=>trkRow(t,"",false)).join("");
+  box.innerHTML = html || '<p class="empty">Nothing queued yet — search above!</p>';
+}
+function trkRow(t, tag, now){
+  return '<div class="song'+(now?' playing':'')+'">'+
+    (t.art?'<img class="qart" src="'+esc(t.art)+'">':'')+
+    '<div class="st"><div class="stitle">'+esc(t.title)+'</div>'+
+    '<div class="sby">'+esc(t.artist)+(tag?' · '+tag:'')+'</div></div></div>';
+}
+// debounced search
+let msTimer=null;
+function setupSearch(){
+  const inp=$("#msearch"); if(inp._wired) return; inp._wired=true;
+  inp.oninput=()=>{ clearTimeout(msTimer); msTimer=setTimeout(doSearch,350); };
+}
+async function doSearch(){
+  const q=$("#msearch").value.trim();
+  const box=$("#mresults");
+  if(!q){ box.innerHTML=""; return; }
+  let res;
+  try{ res=await (await fetch("/music/search?q="+encodeURIComponent(q))).json(); }
+  catch(e){ return; }
+  if(!Array.isArray(res)){ box.innerHTML=""; return; }
+  box.innerHTML = res.length ? res.map((t,i)=>
+    '<div class="trk" data-i="'+i+'">'+
+    (t.art?'<img src="'+esc(t.art)+'">':'<img>')+
+    '<div class="ti"><div class="tt">'+esc(t.title)+'</div><div class="ta">'+esc(t.artist)+'</div></div>'+
+    '<span class="add">＋</span></div>').join("")
+    : '<p class="empty">No matches.</p>';
+  [...box.querySelectorAll(".trk")].forEach((el,i)=>el.onclick=()=>queueTrack(res[i],el));
+}
+async function queueTrack(t, el){
+  const r = await fetch("/music/queue",{method:"POST",headers:{"Content-Type":"application/json"},
+    body:JSON.stringify({uri:t.uri})});
+  if(r.ok){ el.classList.add("done"); el.querySelector(".add").textContent="✓"; toast("added ✓"); refreshQueue(); }
+  else { const e=await r.json().catch(()=>({})); toast(e.detail||"couldn't add"); }
+}
+function toast(msg){ let t=$("#mtoast"); if(!t){ t=document.createElement("div"); t.id="mtoast";
+    t.className="mtoast"; $("#mresults").before(t); } t.textContent=msg;
+  clearTimeout(toast._t); toast._t=setTimeout(()=>t.textContent="",2500); }
+
+// text fallback
+async function renderTextSongs(){
   const songs = await (await fetch("/songs")).json();
-  const box = $("#songbox");
-  box.innerHTML = songs.length ? songs.map((s,i)=>
+  $("#songbox").innerHTML = songs.length ? songs.map((s,i)=>
     '<div class="song"><span class="sn">'+(i+1)+'</span><div class="st"><div class="stitle">'+esc(s.title)+'</div>'+
     (s.by?'<div class="sby">'+esc(s.by)+'</div>':'')+'</div></div>').join("")
     : '<p class="empty">Queue is empty — add the first song!</p>';
@@ -387,8 +468,9 @@ $("#songadd").onclick = async () => {
   const mine = state.guests.find(x=>x.id===me);
   await fetch("/songs",{method:"POST",headers:{"Content-Type":"application/json"},
     body:JSON.stringify({title:t, by: mine?mine.name:""})});
-  $("#songtitle").value=""; renderSongs();
+  $("#songtitle").value=""; renderTextSongs();
 };
+setupSearch();
 
 // ---- tabs ----
 document.querySelectorAll(".tab").forEach(t=>t.onclick=()=>{
