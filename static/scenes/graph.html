@@ -18,49 +18,87 @@ body{background:transparent;color:#f5eeff;font-family:"Instrument Sans",system-u
 .sub{font-size:clamp(12px,1.1vw,16px);color:#a892d0;margin-top:6px}
 .stat{text-align:right;font-size:clamp(13px,1.3vw,19px);color:#a892d0}
 .stat b{color:#f5eeff;font-size:1.5em;font-family:"Bricolage Grotesque"}
-.crown{margin-top:8px;font-size:clamp(13px,1.2vw,18px);color:#ffd36b}
 #cy{position:fixed;inset:0}
 </style>
 </head>
 <body>
 <div class="top">
   <div><div class="title">who knows who</div><div class="sub">tap someone at the party to connect</div></div>
-  <div class="stat"><b id="np">0</b> here · <b id="ne">0</b> connections
-    <div class="crown" id="crown"></div></div>
+  <div class="stat"><b id="np">0</b> here · <b id="ne">0</b> connections</div>
 </div>
 <div id="cy"></div>
 <script>
-let cy=null;
-const IEL = e => 300 - (e.data("weight")||50)*2;
-function build(els){
-  const layout={name:"cose",animate:true,animationDuration:700,padding:90,idealEdgeLength:IEL};
+let cy=null, lastSig="";
+const PAL=["#ff4d9d","#59e0ff","#7cf6a0","#ffd36b","#bb9af7","#ff9e64","#7aa2f7","#f7768e"];
+
+// weighted community detection. hubs (who know almost everyone) bridge every
+// group, so exclude them from detection then slot them into their strongest group.
+function communities(guests, edges){
+  const adj={}; guests.forEach(g=>adj[g.id]=[]);
+  edges.forEach(e=>{adj[e.a].push([e.b,e.weight]); adj[e.b].push([e.a,e.weight]);});
+  const deg={}; guests.forEach(g=>deg[g.id]=adj[g.id].length);
+  const HUB=Math.max(6, guests.length*0.6);
+  const isHub={}; guests.forEach(g=>isHub[g.id]=deg[g.id]>=HUB);
+  const dadj={}; guests.forEach(g=>dadj[g.id]=[]);
+  edges.forEach(e=>{ if(isHub[e.a]||isHub[e.b])return;
+    dadj[e.a].push([e.b,e.weight]); dadj[e.b].push([e.a,e.weight]);});
+  const lab={}; guests.forEach(g=>lab[g.id]=g.id);
+  const nonhub=guests.filter(g=>!isHub[g.id]).map(g=>g.id);
+  for(let it=0;it<60;it++){ let ch=false;
+    nonhub.forEach(id=>{ const t={};
+      dadj[id].forEach(p=>t[lab[p[0]]]=(t[lab[p[0]]]||0)+p[1]);
+      let best=lab[id],bv=(t[lab[id]]||0);
+      for(const k in t) if(t[k]>bv){bv=t[k];best=+k;}
+      if(best!==lab[id]){lab[id]=best;ch=true;}
+    });
+    if(!ch) break;
+  }
+  guests.forEach(g=>{ if(!isHub[g.id])return; const t={};
+    adj[g.id].forEach(p=>t[lab[p[0]]]=(t[lab[p[0]]]||0)+p[1]);
+    let best=lab[g.id],bv=-1; for(const k in t) if(t[k]>bv){bv=t[k];best=+k;}
+    lab[g.id]=best; });
+  const counts={}; guests.forEach(g=>counts[lab[g.id]]=(counts[lab[g.id]]||0)+1);
+  const order=Object.keys(counts).sort((a,b)=>counts[b]-counts[a]);
+  const color={}; order.forEach((c,i)=>color[c]=PAL[i%PAL.length]);
+  return {lab, color, deg};
+}
+
+function build(els, relayout){
+  const layout={name:"cose",animate:true,animationDuration:700,padding:90,randomize:relayout,
+    nodeRepulsion:26000,nodeOverlap:50,gravity:0.12,numIter:2500,edgeElasticity:130,
+    idealEdgeLength:e=>e.data("same")?(100-(e.data("weight")||50)*0.4):300};
   if(!cy){
     cy=cytoscape({container:document.getElementById("cy"),elements:els,minZoom:.3,maxZoom:2.5,
       style:[
-        {selector:"node",style:{"background-color":"#ff4d9d","label":"data(label)","color":"#f5eeff",
+        {selector:"node",style:{"background-color":"data(color)","label":"data(label)","color":"#f5eeff",
           "font-family":"Bricolage Grotesque","font-size":22,"text-valign":"bottom","text-margin-y":10,
-          "width":"mapData(deg,0,8,34,72)","height":"mapData(deg,0,8,34,72)",
+          "width":"mapData(deg,0,12,34,68)","height":"mapData(deg,0,12,34,68)",
           "border-width":3,"border-color":"#150b28","text-outline-color":"#0a0714","text-outline-width":4}},
-        {selector:'node[?king]',style:{"background-color":"#ffd36b","border-color":"#ff4d9d"}},
-        {selector:"edge",style:{"width":"mapData(weight,0,100,2,7)","line-color":"#59e0ff",
-          "opacity":"mapData(weight,0,100,.4,.9)","curve-style":"straight"}}
+        {selector:"edge",style:{"width":"mapData(weight,0,100,2,7)","line-color":"data(ecolor)",
+          "opacity":"mapData(weight,0,100,.4,.9)","curve-style":"straight"}},
+        {selector:"edge[!same]",style:{"opacity":0.12,"width":1.5,"line-style":"dashed"}}
       ],
       layout});
-  }else{ cy.json({elements:els}); cy.layout(layout).run(); }
+  }else{
+    cy.json({elements:els});
+    if(relayout) cy.layout(layout).run();
+  }
 }
 async function load(){
   const s=await (await fetch("/state")).json();
   document.getElementById("np").textContent=s.guests.length;
   document.getElementById("ne").textContent=s.edges.length;
-  // degree + connector-of-the-night
-  const deg={}; s.guests.forEach(g=>deg[g.id]=0);
-  s.edges.forEach(e=>{deg[e.a]=(deg[e.a]||0)+1;deg[e.b]=(deg[e.b]||0)+1});
-  let king=null,max=0;
-  s.guests.forEach(g=>{if(deg[g.id]>max){max=deg[g.id];king=g}});
-  document.getElementById("crown").textContent = (king&&max>0) ? "👑 connector of the night: "+king.name+" ("+max+")" : "";
-  const els=s.guests.map(p=>({data:{id:"n"+p.id,label:p.name,deg:deg[p.id]||0,king:king&&p.id===king.id&&max>0}}))
-    .concat(s.edges.map(e=>({data:{id:"e"+e.a+"_"+e.b,source:"n"+e.a,target:"n"+e.b,weight:e.weight}})));
-  build(els);
+  if(!s.guests.length){ if(cy) cy.elements().remove(); lastSig=""; return; }
+  const {lab,color,deg}=communities(s.guests,s.edges);
+  const els=s.guests.map(p=>({data:{id:"n"+p.id,label:p.name,deg:deg[p.id]||0,
+      color:color[lab[p.id]]||PAL[0]}}))
+    .concat(s.edges.map(e=>{const same=lab[e.a]===lab[e.b];
+      return {data:{id:"e"+e.a+"_"+e.b,source:"n"+e.a,target:"n"+e.b,weight:e.weight,
+        same:same?1:0, ecolor: same?(color[lab[e.a]]||PAL[1]):"#33405c"}};}));
+  // only re-run the layout when the structure changes, so the wall doesn't reshuffle every poll
+  const sig=s.guests.map(g=>g.id).sort().join(",")+"|"+s.edges.map(e=>e.a+"-"+e.b).sort().join(",");
+  const relayout = sig!==lastSig; lastSig=sig;
+  build(els, relayout);
 }
 load();
 setInterval(load,3000);
