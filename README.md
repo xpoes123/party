@@ -31,8 +31,18 @@ polling — no websockets.
 python test_app.py
 ```
 
-## Deploy (VPS, later)
+## Deploy (VPS — live)
 
-Add a Caddy block for `party.djiang.xyz` → `reverse_proxy 127.0.0.1:7799`, run
-under systemd with `PARTY_ADMIN_KEY` set to something private, git pull to
-deploy. Point the door QR at `https://party.djiang.xyz`.
+Live at **https://party.djiang.xyz**. On the Hetzner VPS: `/opt/party`, systemd
+unit `party.service` (uvicorn on `127.0.0.1:7786`), Caddy `reverse_proxy` block,
+admin key in `/opt/party/.env`. Cloned via the `party-deploy` SSH deploy key
+(`core.sshCommand` is set in the repo config).
+
+Redeploy after pushing to `main`:
+
+```bash
+ssh root@87.99.136.82 "cd /opt/party && git pull && venv/bin/pip install -q -r requirements.txt && systemctl restart party"
+```
+
+`party.db` lives on the VPS and is not in git — guests/edges/polls/songs persist
+across redeploys.
