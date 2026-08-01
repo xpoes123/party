@@ -43,6 +43,25 @@ def init():
                 weight INTEGER NOT NULL DEFAULT 50,
                 PRIMARY KEY (a, b)
             );
+            CREATE TABLE IF NOT EXISTS polls (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                question TEXT NOT NULL,
+                opt_a TEXT NOT NULL,
+                opt_b TEXT NOT NULL,
+                active INTEGER NOT NULL DEFAULT 1
+            );
+            CREATE TABLE IF NOT EXISTS votes (
+                poll_id INTEGER NOT NULL,
+                guest_id INTEGER NOT NULL,
+                choice TEXT NOT NULL,
+                PRIMARY KEY (poll_id, guest_id)
+            );
+            CREATE TABLE IF NOT EXISTS songs (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                title TEXT NOT NULL,
+                by_name TEXT NOT NULL DEFAULT '',
+                played INTEGER NOT NULL DEFAULT 0
+            );
             """
         )
         # migrate older DBs that predate the weight column
@@ -253,6 +272,120 @@ async def admin_set_edges(request: Request):
             else:
                 conn.execute("DELETE FROM edges WHERE a=? AND b=?", (a, b))
     return {"ok": True}
+
+
+# ---- polls ----
+def _poll_row(conn, p, me):
+    counts = {"a": 0, "b": 0}
+    for r in conn.execute("SELECT choice, COUNT(*) c FROM votes WHERE poll_id=? GROUP BY choice", (p["id"],)):
+        counts[r["choice"]] = r["c"]
+    mine = None
+    if me is not None:
+        r = conn.execute("SELECT choice FROM votes WHERE poll_id=? AND guest_id=?", (p["id"], me)).fetchone()
+        mine = r["choice"] if r else None
+    return {"id": p["id"], "question": p["question"], "opt_a": p["opt_a"], "opt_b": p["opt_b"],
+            "a": counts["a"], "b": counts["b"], "mine": mine}
+
+
+@app.get("/polls")
+def polls(me: int | None = None):
+    with closing(db()) as conn:
+        ps = conn.execute("SELECT * FROM polls WHERE active=1 ORDER BY id").fetchall()
+        return [_poll_row(conn, p, me) for p in ps]
+
+
+@app.post("/polls/vote")
+async def vote(request: Request):
+    body = await request.json()
+    choice = body.get("choice")
+    if choice not in ("a", "b"):
+        raise HTTPException(400, "choice must be a or b")
+    with closing(db()) as conn, conn:
+        conn.execute(
+            "INSERT INTO votes (poll_id, guest_id, choice) VALUES (?, ?, ?) "
+            "ON CONFLICT(poll_id, guest_id) DO UPDATE SET choice=excluded.choice",
+            (int(body["poll_id"]), int(body["me"]), choice),
+        )
+    return {"ok": True}
+
+
+@app.get("/admin/polls")
+def admin_polls(request: Request):
+    require_admin(request)
+    with closing(db()) as conn:
+        ps = conn.execute("SELECT * FROM polls ORDER BY id").fetchall()
+        return [{**_poll_row(conn, p, None), "active": bool(p["active"])} for p in ps]
+
+
+@app.post("/admin/poll")
+async def admin_add_poll(request: Request):
+    require_admin(request)
+    body = await request.json()
+    q, a, b = body.get("question", "").strip(), body.get("opt_a", "").strip(), body.get("opt_b", "").strip()
+    if not (q and a and b):
+        raise HTTPException(400, "question and both options required")
+    with closing(db()) as conn, conn:
+        cur = conn.execute("INSERT INTO polls (question, opt_a, opt_b) VALUES (?, ?, ?)", (q, a, b))
+    return {"ok": True, "id": cur.lastrowid}
+
+
+@app.post("/admin/poll/{pid}")
+async def admin_edit_poll(pid: int, request: Request):
+    require_admin(request)
+    body = await request.json()
+    with closing(db()) as conn, conn:
+        if body.get("delete"):
+            conn.execute("DELETE FROM votes WHERE poll_id=?", (pid,))
+            conn.execute("DELETE FROM polls WHERE id=?", (pid,))
+        else:
+            conn.execute("UPDATE polls SET active=? WHERE id=?", (1 if body.get("active") else 0, pid))
+    return {"ok": True}
+
+
+# ---- songs ----
+@app.get("/songs")
+def songs():
+    with closing(db()) as conn:
+        rows = conn.execute("SELECT * FROM songs WHERE played=0 ORDER BY id").fetchall()
+    return [{"id": r["id"], "title": r["title"], "by": r["by_name"]} for r in rows]
+
+
+@app.post("/songs")
+async def add_song(request: Request):
+    body = await request.json()
+    title = body.get("title", "").strip()
+    if not title:
+        raise HTTPException(400, "title required")
+    with closing(db()) as conn, conn:
+        cur = conn.execute("INSERT INTO songs (title, by_name) VALUES (?, ?)",
+                           (title[:120], body.get("by", "").strip()[:40]))
+    return {"ok": True, "id": cur.lastrowid}
+
+
+@app.post("/admin/song/{sid}")
+async def admin_song(sid: int, request: Request):
+    require_admin(request)
+    body = await request.json()
+    with closing(db()) as conn, conn:
+        if body.get("delete"):
+            conn.execute("DELETE FROM songs WHERE id=?", (sid,))
+        else:
+            conn.execute("UPDATE songs SET played=? WHERE id=?", (1 if body.get("played") else 0, sid))
+    return {"ok": True}
+
+
+# ---- pages: wall deck, scenes, welcome ----
+@app.get("/welcome")
+def welcome():
+    return FileResponse(os.path.join(STATIC, "welcome.html"))
+
+
+@app.get("/scene/{name}")
+def scene(name: str):
+    path = os.path.join(STATIC, "scenes", os.path.basename(name) + ".html")
+    if not os.path.exists(path):
+        raise HTTPException(404, "no such scene")
+    return FileResponse(path)
 
 
 app.mount("/static", StaticFiles(directory=STATIC), name="static")

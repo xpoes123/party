@@ -11,9 +11,15 @@ set -x PARTY_ADMIN_KEY partytime
 uvicorn app:app --host 0.0.0.0 --port 7799
 ```
 
-- Guest app: `/`
-- Wall (fullscreen graph for a monitor/TV): `/wall`
-- Admin (add guests, toggle who's present): `/admin?key=partytime`
+- Guest app (phones): `/` — pick your name, connect, vote in polls, request songs, edit contacts
+- Wall (monitor A): `/wall` — auto-rotating scenes: graph → blob battle → live poll → song queue
+- Welcome screen (monitor B): `/welcome` — big QR + live headcount + arrivals ticker.
+  QR encodes this page's origin by default; override with `/welcome?url=https://party.djiang.xyz`
+- Admin (control panel): `/admin?key=partytime` — guests/presence, connection weights, polls, song queue
+
+Wall scenes live in `static/scenes/` and are served at `/scene/<name>`; the blob
+battle (`/scene/blobs`) is a self-contained canvas game that names its two blobs
+after random present guests.
 
 Contacts are hidden until two people connect. `present=0` guests disappear from
 the app and graph. Data lives in `party.db` (gitignored). Real-time via 2.5s

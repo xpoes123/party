@@ -1,0 +1,109 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>blob battle</title>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,800&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0}
+html,body{height:100%;overflow:hidden;background:transparent}
+#c{position:fixed;inset:0;width:100%;height:100%}
+.hud{position:fixed;top:26px;left:0;right:0;text-align:center;pointer-events:none;
+  font-family:"Bricolage Grotesque";font-weight:800}
+.hud .t{font-size:clamp(22px,2.6vw,40px);letter-spacing:.06em;color:#f5eeff}
+.hud .s{font-size:clamp(13px,1.3vw,18px);color:#a892d0;letter-spacing:.25em;text-transform:uppercase;margin-top:6px}
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+<div class="hud"><div class="t" id="score">blob battle</div><div class="s">eat the dots — biggest blob wins</div></div>
+<script>
+const cv=document.getElementById("c"), ctx=cv.getContext("2d");
+let W,H; function fit(){W=cv.width=innerWidth;H=cv.height=innerHeight;} fit(); addEventListener("resize",fit);
+
+let names=["Pinky","Cyan"];
+async function pickNames(){
+  try{
+    const s=await (await fetch("/state")).json();
+    const ns=s.guests.map(g=>g.name);
+    if(ns.length>=2){ const i=Math.floor(Math.random()*ns.length); let j;
+      do{ j=Math.floor(Math.random()*ns.length);}while(j===i);
+      names=[ns[i],ns[j]]; }
+  }catch(e){}
+}
+const rnd=(a,b)=>a+Math.random()*(b-a);
+function newBlob(x,color,name){return {x,y:H/2,vx:0,vy:0,r:26,color,name,ph:Math.random()*6};}
+let blobs, food, winner, winAt, particles;
+function reset(){
+  blobs=[newBlob(W*0.3,"#ff4d9d",names[0]), newBlob(W*0.7,"#59e0ff",names[1])];
+  food=[]; for(let i=0;i<46;i++) spawnFood();
+  particles=[]; winner=null; winAt=0;
+}
+function spawnFood(){ food.push({x:rnd(40,W-40),y:rnd(90,H-40),r:rnd(4,7)}); }
+function nearest(b){ let best=null,bd=1e9;
+  for(const f of food){ const d=(f.x-b.x)**2+(f.y-b.y)**2; if(d<bd){bd=d;best=f;} } return best; }
+function pop(x,y,color){ for(let i=0;i<10;i++) particles.push(
+  {x,y,vx:rnd(-3,3),vy:rnd(-3,3),life:1,color}); }
+
+function step(){
+  if(winner){ if(performance.now()-winAt>3200){ pickNames().then(reset); winner=""; } return draw(); }
+  for(const b of blobs){
+    const opp=blobs.find(o=>o!==b);
+    // hunt opponent if clearly bigger, else nearest food
+    let tx,ty;
+    if(b.r>opp.r*1.18){ tx=opp.x; ty=opp.y; }
+    else { const f=nearest(b); tx=f?f.x:W/2; ty=f?f.y:H/2; }
+    const dx=tx-b.x, dy=ty-b.y, d=Math.hypot(dx,dy)||1;
+    const acc=0.55;
+    b.vx=(b.vx+dx/d*acc)*0.92 + rnd(-.15,.15);
+    b.vy=(b.vy+dy/d*acc)*0.92 + rnd(-.15,.15);
+    // bigger = slower
+    const sp=Math.max(1.2, 4.2-b.r/34);
+    const v=Math.hypot(b.vx,b.vy)||1; if(v>sp){b.vx*=sp/v;b.vy*=sp/v;}
+    b.x=Math.max(b.r,Math.min(W-b.r,b.x+b.vx));
+    b.y=Math.max(b.r,Math.min(H-b.r,b.y+b.vy));
+    b.ph+=0.08;
+    // eat food
+    for(let i=food.length-1;i>=0;i--){ const f=food[i];
+      if(Math.hypot(f.x-b.x,f.y-b.y)<b.r){ b.r=Math.sqrt(b.r*b.r+f.r*f.r*3.4);
+        pop(f.x,f.y,b.color); food.splice(i,1); spawnFood(); } }
+  }
+  // blob vs blob
+  const [a,c]=blobs, dd=Math.hypot(a.x-c.x,a.y-c.y);
+  if(dd < Math.max(a.r,c.r)){
+    const big=a.r>=c.r?a:c, small=big===a?c:a;
+    if(big.r>small.r*1.12){ winner=big.name; winAt=performance.now();
+      pop(small.x,small.y,small.color); pop(small.x,small.y,big.color); }
+  }
+  draw();
+}
+function blobPath(b){ ctx.beginPath();
+  for(let a=0;a<=Math.PI*2+0.1;a+=0.35){
+    const rr=b.r*(1+0.06*Math.sin(a*3+b.ph));
+    const x=b.x+Math.cos(a)*rr, y=b.y+Math.sin(a)*rr;
+    a===0?ctx.moveTo(x,y):ctx.lineTo(x,y);
+  } ctx.closePath(); }
+function draw(){
+  ctx.clearRect(0,0,W,H);
+  // food
+  for(const f of food){ ctx.beginPath();ctx.arc(f.x,f.y,f.r,0,7);ctx.fillStyle="#ffd36b";
+    ctx.shadowColor="#ffd36b";ctx.shadowBlur=10;ctx.fill();ctx.shadowBlur=0; }
+  // particles
+  for(let i=particles.length-1;i>=0;i--){ const p=particles[i];
+    p.x+=p.vx;p.y+=p.vy;p.life-=0.04; if(p.life<=0){particles.splice(i,1);continue;}
+    ctx.globalAlpha=p.life;ctx.beginPath();ctx.arc(p.x,p.y,3,0,7);ctx.fillStyle=p.color;ctx.fill();ctx.globalAlpha=1; }
+  // blobs
+  for(const b of blobs){ ctx.shadowColor=b.color;ctx.shadowBlur=30;
+    blobPath(b);ctx.fillStyle=b.color;ctx.globalAlpha=.9;ctx.fill();ctx.globalAlpha=1;ctx.shadowBlur=0;
+    ctx.fillStyle="#0a0714";ctx.font='800 '+Math.max(13,b.r*0.42)+'px Bricolage Grotesque';
+    ctx.textAlign="center";ctx.textBaseline="middle";ctx.fillText(b.name,b.x,b.y); }
+  // score
+  const sc=document.getElementById("score");
+  if(winner){ sc.textContent="🏆 "+winner+" wins!"; }
+  else { sc.textContent=blobs[0].name+" "+Math.round(blobs[0].r)+"  vs  "+Math.round(blobs[1].r)+" "+blobs[1].name; }
+}
+pickNames().then(()=>{ reset(); (function loop(){step();requestAnimationFrame(loop);})(); });
+</script>
+</body>
+</html>

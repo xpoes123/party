@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>poll scene</title>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=Instrument+Sans:wght@500&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0}
+html,body{height:100%;overflow:hidden}
+body{background:transparent;color:#f5eeff;font-family:"Instrument Sans",system-ui,sans-serif;
+  display:flex;align-items:center;justify-content:center;padding:6vh 6vw}
+.wrap{width:100%;max-width:1100px}
+.kick{text-align:center;font-size:clamp(13px,1.3vw,18px);letter-spacing:.3em;text-transform:uppercase;color:#a892d0;margin-bottom:14px}
+.q{font-family:"Bricolage Grotesque";font-weight:800;font-size:clamp(34px,5vw,68px);text-align:center;
+  line-height:1.02;margin-bottom:6vh}
+.bars{display:flex;flex-direction:column;gap:22px}
+.bar{position:relative;height:clamp(70px,11vh,120px);border-radius:20px;overflow:hidden;
+  background:#1b1030;border:1px solid #2c1c47}
+.fill{position:absolute;inset:0;width:0;transition:width .8s cubic-bezier(.22,1,.36,1);border-radius:20px}
+.fill.a{background:linear-gradient(100deg,#ff4d9d,#ff85b8)}
+.fill.b{background:linear-gradient(100deg,#59e0ff,#7cf6a0)}
+.lab{position:absolute;inset:0;display:flex;align-items:center;justify-content:space-between;
+  padding:0 clamp(20px,3vw,40px);z-index:2}
+.opt{font-family:"Bricolage Grotesque";font-weight:600;font-size:clamp(22px,3vw,42px);
+  text-shadow:0 2px 12px rgba(0,0,0,.4)}
+.pct{font-family:"Bricolage Grotesque";font-weight:800;font-size:clamp(26px,3.4vw,48px);
+  font-variant-numeric:tabular-nums;text-shadow:0 2px 12px rgba(0,0,0,.4)}
+.tot{text-align:center;color:#a892d0;margin-top:24px;font-size:clamp(14px,1.4vw,20px)}
+.empty{text-align:center;color:#a892d0;font-family:"Bricolage Grotesque";font-size:clamp(24px,3vw,40px)}
+</style>
+</head>
+<body>
+<div class="wrap" id="wrap"><p class="empty">no active polls right now…</p></div>
+<script>
+let polls=[], idx=0;
+function render(){
+  const w=document.getElementById("wrap");
+  if(!polls.length){ w.innerHTML='<p class="empty">no active polls right now…</p>'; return; }
+  const p=polls[idx%polls.length];
+  const tot=p.a+p.b, pa=tot?Math.round(p.a/tot*100):0, pb=tot?100-pa:0;
+  w.innerHTML =
+    '<div class="kick">this or that · vote on your phone</div>'+
+    '<div class="q">'+esc(p.question)+'</div>'+
+    '<div class="bars">'+
+      bar("a",p.opt_a,pa)+bar("b",p.opt_b,pb)+
+    '</div>'+
+    '<div class="tot">'+tot+' vote'+(tot===1?'':'s')+'</div>';
+  // animate fills after paint
+  requestAnimationFrame(()=>{
+    w.querySelector(".fill.a").style.width=Math.max(pa,tot?6:0)+"%";
+    w.querySelector(".fill.b").style.width=Math.max(pb,tot?6:0)+"%";
+  });
+}
+function bar(k,label,pct){
+  return '<div class="bar"><div class="fill '+k+'"></div>'+
+    '<div class="lab"><span class="opt">'+esc(label)+'</span><span class="pct">'+pct+'%</span></div></div>';
+}
+async function load(){ polls=await (await fetch("/polls")).json(); render(); }
+function esc(s){return String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]))}
+load();
+setInterval(load,3000);
+setInterval(()=>{ if(polls.length>1){ idx++; render(); } },8000);  // cycle multiple polls
+</script>
+</body>
+</html>

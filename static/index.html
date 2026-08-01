@@ -54,7 +54,7 @@ nav{position:fixed;left:0;right:0;bottom:0;z-index:10;
 .tabs{display:flex;gap:6px;background:rgba(27,16,48,.85);border:1px solid var(--line);
   border-radius:999px;padding:6px;backdrop-filter:blur(12px);width:100%;max-width:400px}
 .tab{flex:1;border:0;background:transparent;color:var(--muted);font-family:inherit;font-weight:600;
-  font-size:14px;padding:11px 0;border-radius:999px;cursor:pointer;transition:.15s}
+  font-size:13px;padding:11px 0;border-radius:999px;cursor:pointer;transition:.15s}
 .tab.on{color:#120a1f;background:linear-gradient(100deg,var(--pink),var(--gold))}
 
 .view{display:none;animation:fade .25s ease}
@@ -102,6 +102,28 @@ nav{position:fixed;left:0;right:0;bottom:0;z-index:10;
 .save:active{transform:scale(.98)}
 .saved{color:var(--grn);text-align:center;font-size:14px;margin-top:10px;height:18px}
 .empty{text-align:center;color:var(--muted);padding:40px 0}
+
+/* polls */
+.poll{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:18px;margin-bottom:14px}
+.poll .q{font-family:"Bricolage Grotesque";font-weight:600;font-size:19px;margin:0 0 14px}
+.opts{display:flex;flex-direction:column;gap:10px}
+.opt{position:relative;border:1px solid var(--line);border-radius:14px;padding:14px 16px;cursor:pointer;
+  overflow:hidden;background:#1a0f2e;transition:.15s;font-weight:600}
+.opt .obar{position:absolute;inset:0;width:0;transition:width .6s cubic-bezier(.22,1,.36,1);z-index:0}
+.opt.a .obar{background:linear-gradient(100deg,rgba(255,77,157,.35),rgba(255,133,184,.25))}
+.opt.b .obar{background:linear-gradient(100deg,rgba(89,224,255,.32),rgba(124,246,160,.22))}
+.opt .otxt{position:relative;z-index:1;display:flex;justify-content:space-between}
+.opt.mine{border-color:var(--gold)}
+.opt:active{transform:scale(.98)}
+.pmeta{color:var(--muted);font-size:12px;margin-top:10px}
+
+/* songs list */
+.song{display:flex;align-items:center;gap:12px;background:var(--card);border:1px solid var(--line);
+  border-radius:14px;padding:13px 15px;margin-bottom:10px}
+.song .sn{color:var(--muted);font-weight:700;min-width:1.3em;text-align:center}
+.song .st{flex:1}
+.song .st .stitle{font-weight:600}
+.song .st .sby{color:var(--muted);font-size:12px}
 </style>
 </head>
 <body>
@@ -129,6 +151,19 @@ nav{position:fixed;left:0;right:0;bottom:0;z-index:10;
       <div id="cy"></div>
     </section>
 
+    <section class="view" id="v-vote">
+      <div id="pollbox"></div>
+    </section>
+
+    <section class="view" id="v-songs">
+      <div class="me-card" style="margin-bottom:14px">
+        <h3>request a song</h3>
+        <div class="crow"><input id="songtitle" placeholder="song + artist"></div>
+        <button class="save" id="songadd">add to queue</button>
+      </div>
+      <div id="songbox"></div>
+    </section>
+
     <section class="view" id="v-me">
       <div class="me-card">
         <h3>your contact info</h3>
@@ -146,6 +181,8 @@ nav{position:fixed;left:0;right:0;bottom:0;z-index:10;
   <div class="tabs">
     <button class="tab on" data-v="people">people</button>
     <button class="tab" data-v="graph">graph</button>
+    <button class="tab" data-v="vote">vote</button>
+    <button class="tab" data-v="songs">songs</button>
     <button class="tab" data-v="me">you</button>
   </div>
 </nav>
@@ -167,11 +204,14 @@ function chipHref(label, val){
   return null;
 }
 
+let current = "people";
 async function load(){
   if(!me){ return renderPick(); }
   const r = await fetch("/state?me=" + me);
   state = await r.json();
   renderMeTag(); renderPeople(); renderGraph();
+  if(current === "vote") renderVote();
+  if(current === "songs") renderSongs();
 }
 
 // ---- identity ----
@@ -304,14 +344,63 @@ $("#save").onclick = async () => {
   load();
 };
 
+// ---- vote ----
+async function renderVote(){
+  const polls = await (await fetch("/polls?me="+me)).json();
+  const box = $("#pollbox");
+  if(!polls.length){ box.innerHTML = '<p class="empty">No polls yet — check back soon!</p>'; return; }
+  box.innerHTML = "";
+  for(const p of polls){
+    const tot=p.a+p.b, pa=tot?Math.round(p.a/tot*100):0, pb=tot?100-pa:0;
+    const d = document.createElement("div"); d.className="poll";
+    d.innerHTML = '<p class="q">'+esc(p.question)+'</p><div class="opts">'+
+      optHtml(p,"a",p.opt_a,pa)+optHtml(p,"b",p.opt_b,pb)+'</div>'+
+      '<div class="pmeta">'+tot+' vote'+(tot===1?'':'s')+(p.mine?' · you voted (tap to change)':' · tap to vote')+'</div>';
+    d.querySelectorAll(".opt").forEach(o=>o.onclick=()=>vote(p.id,o.dataset.c));
+    box.appendChild(d);
+    requestAnimationFrame(()=>d.querySelectorAll(".opt").forEach(o=>{
+      o.querySelector(".obar").style.width = (p.mine ? (o.dataset.c==="a"?pa:pb) : 0)+"%"; }));
+  }
+}
+function optHtml(p,k,label,pct){
+  const mine = p.mine===k;
+  return '<div class="opt '+k+(mine?' mine':'')+'" data-c="'+k+'"><div class="obar"></div>'+
+    '<div class="otxt"><span>'+(mine?'✓ ':'')+esc(label)+'</span><span>'+(p.mine?pct+'%':'')+'</span></div></div>';
+}
+async function vote(pid,choice){
+  await fetch("/polls/vote",{method:"POST",headers:{"Content-Type":"application/json"},
+    body:JSON.stringify({poll_id:pid,choice,me})});
+  renderVote();
+}
+
+// ---- songs ----
+async function renderSongs(){
+  const songs = await (await fetch("/songs")).json();
+  const box = $("#songbox");
+  box.innerHTML = songs.length ? songs.map((s,i)=>
+    '<div class="song"><span class="sn">'+(i+1)+'</span><div class="st"><div class="stitle">'+esc(s.title)+'</div>'+
+    (s.by?'<div class="sby">'+esc(s.by)+'</div>':'')+'</div></div>').join("")
+    : '<p class="empty">Queue is empty — add the first song!</p>';
+}
+$("#songadd").onclick = async () => {
+  const t = $("#songtitle").value.trim(); if(!t) return;
+  const mine = state.guests.find(x=>x.id===me);
+  await fetch("/songs",{method:"POST",headers:{"Content-Type":"application/json"},
+    body:JSON.stringify({title:t, by: mine?mine.name:""})});
+  $("#songtitle").value=""; renderSongs();
+};
+
 // ---- tabs ----
 document.querySelectorAll(".tab").forEach(t=>t.onclick=()=>{
   document.querySelectorAll(".tab").forEach(x=>x.classList.remove("on"));
   document.querySelectorAll(".view").forEach(x=>x.classList.remove("on"));
   t.classList.add("on");
-  $("#v-"+t.dataset.v).classList.add("on");
-  if(t.dataset.v==="me") openProfile();
-  if(t.dataset.v==="graph" && cy) setTimeout(()=>{cy.resize();cy.fit(null,30)},50);
+  current = t.dataset.v;
+  $("#v-"+current).classList.add("on");
+  if(current==="me") openProfile();
+  if(current==="vote") renderVote();
+  if(current==="songs") renderSongs();
+  if(current==="graph" && cy) setTimeout(()=>{cy.resize();cy.fit(null,30)},50);
 });
 
 function esc(s){return String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]))}

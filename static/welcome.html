@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>the party — welcome</title>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=Instrument+Sans:wght@500&display=swap" rel="stylesheet">
+<script src="/static/qrcode.js"></script>
+<style>
+*{box-sizing:border-box;margin:0}
+html,body{height:100%;overflow:hidden}
+body{background:
+  radial-gradient(1200px 700px at 80% -10%, rgba(255,77,157,.18), transparent 60%),
+  radial-gradient(1000px 700px at 0% 110%, rgba(89,224,255,.14), transparent 55%),
+  #0a0714;color:#f5eeff;font-family:"Instrument Sans",system-ui,sans-serif;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;padding:5vh 4vw;text-align:center}
+.kick{font-size:clamp(14px,1.4vw,20px);letter-spacing:.36em;text-transform:uppercase;color:#a892d0}
+h1{font-family:"Bricolage Grotesque";font-weight:800;font-size:clamp(52px,9vw,120px);line-height:.9;margin:.08em 0 .2em;
+  background:linear-gradient(100deg,#ff4d9d,#ffd36b 55%,#59e0ff);-webkit-background-clip:text;background-clip:text;color:transparent}
+.qrbox{background:#fff;padding:clamp(16px,2vw,26px);border-radius:24px;box-shadow:0 0 60px rgba(255,77,157,.4)}
+.qrbox img,.qrbox canvas,.qrbox table{display:block;width:clamp(220px,26vw,360px);height:auto;image-rendering:pixelated}
+.scan{font-family:"Bricolage Grotesque";font-weight:600;font-size:clamp(22px,2.6vw,40px);margin-top:26px}
+.count{margin-top:10px;font-size:clamp(16px,1.6vw,24px);color:#a892d0}
+.count b{color:#f5eeff;font-family:"Bricolage Grotesque";font-size:1.5em}
+.ticker{position:fixed;bottom:0;left:0;right:0;height:64px;display:flex;align-items:center;justify-content:center;
+  font-family:"Bricolage Grotesque";font-weight:700;font-size:clamp(18px,2vw,30px);
+  background:linear-gradient(180deg,transparent,rgba(10,7,20,.6));color:#ffd36b}
+.ticker.pop{animation:pop .5s ease}
+@keyframes pop{0%{transform:scale(.7);opacity:0}60%{transform:scale(1.08)}100%{transform:scale(1);opacity:1}}
+</style>
+</head>
+<body>
+<div class="kick">you're invited</div>
+<h1>the&nbsp;party</h1>
+<div class="qrbox" id="qrbox"></div>
+<div class="scan">scan to join the graph</div>
+<div class="count"><b id="n">0</b> people here</div>
+<div class="ticker" id="ticker"></div>
+<script>
+// QR encodes ?url= (final domain) or this page's origin by default
+const joinUrl = new URLSearchParams(location.search).get("url") || location.origin + "/";
+const qr=qrcode(0,"M"); qr.addData(joinUrl); qr.make();
+document.getElementById("qrbox").innerHTML=qr.createImgTag(8,0);
+
+let known=null;
+async function load(){
+  const s=await (await fetch("/state")).json();
+  document.getElementById("n").textContent=s.guests.length;
+  const now=new Set(s.guests.map(g=>g.id));
+  if(known){
+    const arrived=s.guests.filter(g=>!known.has(g.id));
+    if(arrived.length) announce("🎉 "+arrived.map(g=>g.name).join(" & ")+" just arrived!");
+  } else { announce("welcome — tap your name to check in"); }
+  known=now;
+}
+function announce(msg){ const t=document.getElementById("ticker");
+  t.textContent=msg; t.classList.remove("pop"); void t.offsetWidth; t.classList.add("pop"); }
+load();
+setInterval(load,3000);
+</script>
+</body>
+</html>

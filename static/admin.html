@@ -44,6 +44,15 @@ select:focus{outline:none;border-color:var(--pink)}
 .lrow input[type=range]{flex:2;accent-color:var(--pink)}
 .lrow .lw{flex:0 0 46px;text-align:right;font-variant-numeric:tabular-nums;color:var(--gold);font-weight:600;font-size:14px}
 .lrow.off .ln{color:var(--muted)}
+.prow2{display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--line)}
+.prow2:last-child{border-bottom:0}
+.prow2 .pi{flex:1}
+.prow2 .pi .pqx{font-weight:600}
+.prow2 .pi .pcx{color:var(--muted);font-size:12px;margin-top:2px}
+.mini{border:1px solid var(--line);background:#241338;color:var(--muted);border-radius:9px;
+  padding:8px 12px;cursor:pointer;font-family:inherit;font-size:13px}
+.mini:hover{color:var(--ink)}
+.mini.del:hover{color:#ff7a9c;border-color:#ff7a9c}
 .links{color:var(--muted);font-size:13px;margin-top:20px}
 .links a{color:var(--gold)}
 </style>
@@ -76,7 +85,22 @@ select:focus{outline:none;border-color:var(--pink)}
     <p class="err" id="err"></p>
   </div>
 
-  <p class="links">Guest link: <a href="/" target="_blank">/</a> &nbsp;·&nbsp; Wall view: <a href="/wall" target="_blank">/wall</a></p>
+  <div class="card">
+    <h2>polls</h2>
+    <div class="row"><input id="pq" placeholder="question — e.g. pineapple on pizza?"></div>
+    <div class="row"><input id="pa" placeholder="option A"><input id="pb" placeholder="option B"></div>
+    <button class="big" id="paddbtn">add poll</button>
+    <div id="polllist" style="margin-top:16px"></div>
+  </div>
+
+  <div class="card">
+    <h2>song queue</h2>
+    <div id="songadmin"><p class="cc">loading…</p></div>
+  </div>
+
+  <p class="links">Guest link: <a href="/" target="_blank">/</a> &nbsp;·&nbsp;
+    Wall: <a href="/wall" target="_blank">/wall</a> &nbsp;·&nbsp;
+    Welcome screen: <a href="/welcome" target="_blank">/welcome</a></p>
 </div>
 
 <script>
@@ -179,8 +203,63 @@ $("#addbtn").onclick=async()=>{
   $("#name").value=""; $("#crows").innerHTML=""; $("#err").textContent="";
   load();
 };
+// ---- polls admin ----
+async function loadPolls(){
+  const r = await fetch("/admin/polls", {headers:{"X-Admin-Key":key}});
+  if(!r.ok) return;
+  const ps = await r.json();
+  const box = $("#polllist");
+  box.innerHTML = ps.length ? "" : '<p class="cc">No polls yet.</p>';
+  for(const p of ps){
+    const d = document.createElement("div"); d.className="prow2";
+    d.innerHTML = '<div class="pi"><div class="pqx">'+esc(p.question)+'</div>'+
+      '<div class="pcx">'+esc(p.opt_a)+' '+p.a+' · '+esc(p.opt_b)+' '+p.b+'</div></div>'+
+      '<button class="toggle'+(p.active?' on':'')+'"></button>'+
+      '<button class="mini del">delete</button>';
+    d.querySelector(".toggle").onclick = async () => {
+      await fetch("/admin/poll/"+p.id,{method:"POST",headers:H,body:JSON.stringify({active:!p.active})});
+      loadPolls();
+    };
+    d.querySelector(".del").onclick = async () => {
+      await fetch("/admin/poll/"+p.id,{method:"POST",headers:H,body:JSON.stringify({delete:true})});
+      loadPolls();
+    };
+    box.appendChild(d);
+  }
+}
+$("#paddbtn").onclick = async () => {
+  const q=$("#pq").value.trim(), a=$("#pa").value.trim(), b=$("#pb").value.trim();
+  if(!(q&&a&&b)) return;
+  const r = await fetch("/admin/poll",{method:"POST",headers:H,
+    body:JSON.stringify({question:q,opt_a:a,opt_b:b})});
+  if(r.ok){ $("#pq").value=$("#pa").value=$("#pb").value=""; loadPolls(); }
+};
+
+// ---- songs admin ----
+async function loadSongsAdmin(){
+  const songs = await (await fetch("/songs")).json();
+  const box = $("#songadmin");
+  box.innerHTML = songs.length ? "" : '<p class="cc">Queue is empty.</p>';
+  songs.forEach((s,i)=>{
+    const d = document.createElement("div"); d.className="prow2";
+    d.innerHTML = '<div class="pi"><div class="pqx">'+(i+1)+'. '+esc(s.title)+'</div>'+
+      (s.by?'<div class="pcx">'+esc(s.by)+'</div>':'')+'</div>'+
+      '<button class="mini">played ✓</button><button class="mini del">×</button>';
+    d.querySelectorAll(".mini")[0].onclick = async () => {
+      await fetch("/admin/song/"+s.id,{method:"POST",headers:H,body:JSON.stringify({played:true})});
+      loadSongsAdmin();
+    };
+    d.querySelector(".del").onclick = async () => {
+      await fetch("/admin/song/"+s.id,{method:"POST",headers:H,body:JSON.stringify({delete:true})});
+      loadSongsAdmin();
+    };
+    box.appendChild(d);
+  });
+}
+
 function esc(s){return String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]))}
-load();
+load(); loadPolls(); loadSongsAdmin();
+setInterval(()=>{ loadPolls(); loadSongsAdmin(); }, 5000);
 </script>
 </body>
 </html>

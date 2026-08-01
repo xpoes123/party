@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>graph scene</title>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,800&family=Instrument+Sans:wght@500&display=swap" rel="stylesheet">
+<script src="/static/cytoscape.min.js"></script>
+<style>
+*{box-sizing:border-box;margin:0}
+html,body{height:100%;overflow:hidden}
+body{background:transparent;color:#f5eeff;font-family:"Instrument Sans",system-ui,sans-serif}
+.top{position:fixed;top:0;left:0;right:0;z-index:5;display:flex;justify-content:space-between;
+  align-items:flex-start;padding:30px 44px;pointer-events:none}
+.title{font-family:"Bricolage Grotesque";font-weight:800;font-size:clamp(26px,3vw,44px);line-height:1;
+  background:linear-gradient(100deg,#ff4d9d,#ffd36b 55%,#59e0ff);
+  -webkit-background-clip:text;background-clip:text;color:transparent}
+.sub{font-size:clamp(12px,1.1vw,16px);color:#a892d0;margin-top:6px}
+.stat{text-align:right;font-size:clamp(13px,1.3vw,19px);color:#a892d0}
+.stat b{color:#f5eeff;font-size:1.5em;font-family:"Bricolage Grotesque"}
+.crown{margin-top:8px;font-size:clamp(13px,1.2vw,18px);color:#ffd36b}
+#cy{position:fixed;inset:0}
+</style>
+</head>
+<body>
+<div class="top">
+  <div><div class="title">who knows who</div><div class="sub">tap someone at the party to connect</div></div>
+  <div class="stat"><b id="np">0</b> here · <b id="ne">0</b> connections
+    <div class="crown" id="crown"></div></div>
+</div>
+<div id="cy"></div>
+<script>
+let cy=null;
+const IEL = e => 300 - (e.data("weight")||50)*2;
+function build(els){
+  const layout={name:"cose",animate:true,animationDuration:700,padding:90,idealEdgeLength:IEL};
+  if(!cy){
+    cy=cytoscape({container:document.getElementById("cy"),elements:els,minZoom:.3,maxZoom:2.5,
+      style:[
+        {selector:"node",style:{"background-color":"#ff4d9d","label":"data(label)","color":"#f5eeff",
+          "font-family":"Bricolage Grotesque","font-size":22,"text-valign":"bottom","text-margin-y":10,
+          "width":"mapData(deg,0,8,34,72)","height":"mapData(deg,0,8,34,72)",
+          "border-width":3,"border-color":"#150b28","text-outline-color":"#0a0714","text-outline-width":4}},
+        {selector:'node[?king]',style:{"background-color":"#ffd36b","border-color":"#ff4d9d"}},
+        {selector:"edge",style:{"width":"mapData(weight,0,100,2,7)","line-color":"#59e0ff",
+          "opacity":"mapData(weight,0,100,.4,.9)","curve-style":"straight"}}
+      ],
+      layout});
+  }else{ cy.json({elements:els}); cy.layout(layout).run(); }
+}
+async function load(){
+  const s=await (await fetch("/state")).json();
+  document.getElementById("np").textContent=s.guests.length;
+  document.getElementById("ne").textContent=s.edges.length;
+  // degree + connector-of-the-night
+  const deg={}; s.guests.forEach(g=>deg[g.id]=0);
+  s.edges.forEach(e=>{deg[e.a]=(deg[e.a]||0)+1;deg[e.b]=(deg[e.b]||0)+1});
+  let king=null,max=0;
+  s.guests.forEach(g=>{if(deg[g.id]>max){max=deg[g.id];king=g}});
+  document.getElementById("crown").textContent = (king&&max>0) ? "👑 connector of the night: "+king.name+" ("+max+")" : "";
+  const els=s.guests.map(p=>({data:{id:"n"+p.id,label:p.name,deg:deg[p.id]||0,king:king&&p.id===king.id&&max>0}}))
+    .concat(s.edges.map(e=>({data:{id:"e"+e.a+"_"+e.b,source:"n"+e.a,target:"n"+e.b,weight:e.weight}})));
+  build(els);
+}
+load();
+setInterval(load,3000);
+</script>
+</body>
+</html>

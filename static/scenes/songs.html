@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>songs scene</title>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=Instrument+Sans:wght@400;500&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0}
+html,body{height:100%;overflow:hidden}
+body{background:transparent;color:#f5eeff;font-family:"Instrument Sans",system-ui,sans-serif;padding:6vh 7vw}
+.head{display:flex;align-items:baseline;gap:16px;margin-bottom:4vh}
+.title{font-family:"Bricolage Grotesque";font-weight:800;font-size:clamp(30px,4vw,58px);
+  background:linear-gradient(100deg,#59e0ff,#7cf6a0);-webkit-background-clip:text;background-clip:text;color:transparent}
+.sub{color:#a892d0;font-size:clamp(13px,1.3vw,18px)}
+.list{display:flex;flex-direction:column;gap:16px}
+.row{display:flex;align-items:center;gap:20px;background:#1b1030;border:1px solid #2c1c47;
+  border-radius:16px;padding:clamp(14px,2vh,22px) clamp(18px,2.5vw,30px)}
+.row.now{border-color:#7cf6a0;background:linear-gradient(100deg,rgba(124,246,160,.12),#1b1030)}
+.num{font-family:"Bricolage Grotesque";font-weight:800;font-size:clamp(24px,2.6vw,40px);color:#4a3a68;
+  min-width:1.4em;text-align:center}
+.now .num{color:#7cf6a0}
+.info{flex:1;min-width:0}
+.t{font-family:"Bricolage Grotesque";font-weight:600;font-size:clamp(20px,2.4vw,38px);
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.by{color:#a892d0;font-size:clamp(12px,1.2vw,17px);margin-top:2px}
+.tag{font-family:"Bricolage Grotesque";font-weight:700;color:#7cf6a0;font-size:clamp(13px,1.3vw,18px);
+  letter-spacing:.15em;text-transform:uppercase}
+.empty{color:#a892d0;font-family:"Bricolage Grotesque";font-size:clamp(24px,3vw,40px);margin-top:8vh;text-align:center}
+</style>
+</head>
+<body>
+<div class="head"><span class="title">up next</span><span class="sub">🎧 request from your phone</span></div>
+<div class="list" id="list"><p class="empty">no requests yet — add one!</p></div>
+<script>
+async function load(){
+  const songs=await (await fetch("/songs")).json();
+  const l=document.getElementById("list");
+  if(!songs.length){ l.innerHTML='<p class="empty">no requests yet — add one from your phone!</p>'; return; }
+  l.innerHTML=songs.slice(0,8).map((s,i)=>{
+    const now=i===0;
+    return '<div class="row'+(now?' now':'')+'">'+
+      '<div class="num">'+(now?'▶':i+1)+'</div>'+
+      '<div class="info"><div class="t">'+esc(s.title)+'</div>'+
+        (s.by?'<div class="by">'+esc(s.by)+'</div>':'')+'</div>'+
+      (now?'<div class="tag">now playing</div>':'')+'</div>';
+  }).join("");
+}
+function esc(s){return String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]))}
+load();
+setInterval(load,3000);
+</script>
+</body>
+</html>

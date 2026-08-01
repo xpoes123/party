@@ -79,6 +79,31 @@ def test():
     assert any(x["name"] == "Bob" for x in c.get("/state").json()["guests"])
     assert c.post("/checkin/9999").status_code == 404
 
+    # polls: create, vote (one per guest), count, deactivate, delete
+    pid = c.post("/admin/poll", json={"question": "pizza?", "opt_a": "yes", "opt_b": "no"},
+                 headers=AK).json()["id"]
+    c.post("/polls/vote", json={"poll_id": pid, "choice": "a", "me": alice})
+    c.post("/polls/vote", json={"poll_id": pid, "choice": "a", "me": alice})  # re-vote = no dupe
+    c.post("/polls/vote", json={"poll_id": pid, "choice": "b", "me": carol})
+    p = c.get(f"/polls?me={alice}").json()[0]
+    assert p["a"] == 1 and p["b"] == 1 and p["mine"] == "a"
+    assert c.post("/polls/vote", json={"poll_id": pid, "choice": "x", "me": alice}).status_code == 400
+    c.post(f"/admin/poll/{pid}", json={"active": False}, headers=AK)
+    assert c.get("/polls").json() == []  # inactive hidden from guests
+    c.post(f"/admin/poll/{pid}", json={"delete": True}, headers=AK)
+    assert c.get("/admin/polls", headers=AK).json() == []
+
+    # songs: add, FIFO order, mark played removes from queue, delete
+    s1 = c.post("/songs", json={"title": "Song One", "by": "Alice"}).json()["id"]
+    s2 = c.post("/songs", json={"title": "Song Two"}).json()["id"]
+    assert [s["title"] for s in c.get("/songs").json()] == ["Song One", "Song Two"]
+    assert c.post("/songs", json={"title": "  "}).status_code == 400
+    c.post(f"/admin/song/{s1}", json={"played": True}, headers=AK)
+    assert [s["title"] for s in c.get("/songs").json()] == ["Song Two"]
+    c.post(f"/admin/song/{s2}", json={"delete": True}, headers=AK)
+    assert c.get("/songs").json() == []
+    assert c.post(f"/admin/song/{s2}", json={"delete": True}).status_code == 403
+
     # admin key enforced
     assert c.get("/admin/guests").status_code == 403
 
