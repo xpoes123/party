@@ -1,0 +1,13 @@
+[Unit]
+Description=Party social graph
+After=network.target
+
+[Service]
+WorkingDirectory=/opt/party
+EnvironmentFile=/opt/party/.env
+ExecStart=/opt/party/venv/bin/uvicorn app:app --host 127.0.0.1 --port 7784
+Restart=always
+User=root
+
+[Install]
+WantedBy=multi-user.target
