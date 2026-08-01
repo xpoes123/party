@@ -5,7 +5,7 @@ After=network.target
 [Service]
 WorkingDirectory=/opt/party
 EnvironmentFile=/opt/party/.env
-ExecStart=/opt/party/venv/bin/uvicorn app:app --host 127.0.0.1 --port 7784
+ExecStart=/opt/party/venv/bin/uvicorn app:app --host 127.0.0.1 --port 7786
 Restart=always
 User=root
 
