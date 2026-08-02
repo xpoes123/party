@@ -62,11 +62,10 @@ h1{font-family:var(--display);font-weight:600;font-size:clamp(30px,8vw,42px);mar
 .song.playing{border-color:rgba(158,206,106,.4)}
 .song .tag{font-family:var(--mono);font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--green);flex:none}
 .empty{text-align:center;color:var(--muted);padding:36px 0;font-size:14px}
-.foot{text-align:center;margin-top:44px;padding-top:26px;border-top:1px solid var(--line)}
-.qrwrap{display:inline-block;background:#fff;padding:10px;border-radius:var(--r);border:1px solid var(--line)}
-.qrwrap img{display:block;width:128px;height:128px;image-rendering:pixelated}
-.foourl{font-family:var(--mono);color:var(--ink2);font-size:14px;letter-spacing:.03em;margin-top:14px}
-.foolbl{font-family:var(--mono);color:var(--muted);font-size:11px;letter-spacing:.14em;text-transform:uppercase;margin-top:5px}
+.qrtop{text-align:center;margin:4px 0 22px}
+.qrwrap{display:inline-block;background:#fff;padding:8px;border-radius:var(--r);border:1px solid var(--line)}
+.qrwrap img{display:block;width:100px;height:100px;image-rendering:pixelated}
+.foourl{font-family:var(--mono);color:var(--muted);font-size:11px;letter-spacing:.06em;margin-top:9px}
 </style>
 </head>
 <body>
@@ -77,6 +76,11 @@ h1{font-family:var(--display);font-weight:600;font-size:clamp(30px,8vw,42px);mar
     <div class="sub">search · tap to add · it plays</div>
   </header>
 
+  <div class="qrtop">
+    <div class="qrwrap" id="qrbox"></div>
+    <div class="foourl">party.djiang.xyz · scan or share to add songs</div>
+  </div>
+
   <div id="offline" class="empty" hidden>Song requests aren't open yet — hang tight.</div>
 
   <div id="app" hidden>
@@ -86,12 +90,6 @@ h1{font-family:var(--display);font-weight:600;font-size:clamp(30px,8vw,42px);mar
     <div class="sec-label">up next</div>
     <div id="queue"></div>
   </div>
-
-  <footer class="foot">
-    <div class="qrwrap" id="qrbox"></div>
-    <div class="foourl">party.djiang.xyz</div>
-    <div class="foolbl">scan or share to add songs</div>
-  </footer>
 </div>
 
 <script>
