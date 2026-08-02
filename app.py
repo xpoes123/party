@@ -82,6 +82,11 @@ def init():
                 played INTEGER NOT NULL DEFAULT 0
             );
             CREATE TABLE IF NOT EXISTS kv (k TEXT PRIMARY KEY, v TEXT NOT NULL);
+            CREATE TABLE IF NOT EXISTS arena_scores (
+                name TEXT PRIMARY KEY,
+                points INTEGER NOT NULL DEFAULT 0,
+                wins INTEGER NOT NULL DEFAULT 0
+            );
             """
         )
         # migrate older DBs that predate the weight column
@@ -714,6 +719,36 @@ async def autopilot():
 @app.on_event("startup")
 async def _start_autopilot():
     asyncio.create_task(autopilot())
+
+
+# ---- arena leaderboard ----
+@app.post("/arena/win")
+async def arena_win(request: Request):
+    b = await request.json()
+    name = str(b.get("name", "")).strip()
+    if not name:
+        raise HTTPException(400, "name required")
+    w = max(1, min(12, int(b.get("weight", 1))))  # points = size of the field beaten
+    with closing(db()) as conn, conn:
+        conn.execute("INSERT INTO arena_scores (name, points, wins) VALUES (?, ?, 1) "
+                     "ON CONFLICT(name) DO UPDATE SET points=points+?, wins=wins+1", (name, w, w))
+    return {"ok": True}
+
+
+@app.get("/arena/leaderboard")
+def arena_leaderboard():
+    with closing(db()) as conn:
+        rows = conn.execute("SELECT name, points, wins FROM arena_scores "
+                            "ORDER BY points DESC, wins DESC LIMIT 12").fetchall()
+    return [{"name": r["name"], "points": r["points"], "wins": r["wins"]} for r in rows]
+
+
+@app.post("/arena/reset")
+def arena_reset(request: Request):
+    require_admin(request)
+    with closing(db()) as conn, conn:
+        conn.execute("DELETE FROM arena_scores")
+    return {"ok": True}
 
 
 # ---- pages: wall deck, scenes, welcome ----

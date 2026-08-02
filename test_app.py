@@ -126,6 +126,18 @@ def test():
     assert c.post("/music/control", json={"action": "bogus"}, headers=AK).status_code == 400
     assert c.post("/music/control", json={"action": "next"}, headers=AK).status_code == 409
 
+    # arena leaderboard: weighted wins accumulate, admin-only reset
+    c.post("/arena/win", json={"name": "Zed", "weight": 5})
+    c.post("/arena/win", json={"name": "Zed", "weight": 3})
+    c.post("/arena/win", json={"name": "Ann", "weight": 6})
+    lb = c.get("/arena/leaderboard").json()
+    assert lb[0] == {"name": "Zed", "points": 8, "wins": 2}   # 8 > 6, ranked by points
+    assert {"name": "Ann", "points": 6, "wins": 1} in lb
+    assert c.post("/arena/win", json={"name": ""}).status_code == 400
+    assert c.post("/arena/reset").status_code == 403
+    c.post("/arena/reset", headers=AK)
+    assert c.get("/arena/leaderboard").json() == []
+
     # admin key enforced
     assert c.get("/admin/guests").status_code == 403
 

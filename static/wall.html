@@ -20,17 +20,19 @@ body{background:
 </style>
 </head>
 <body>
-<iframe id="frame" src="/scene/graph"></iframe>
+<iframe id="frame" src="/scene/songs"></iframe>
 <div class="dots" id="dots"></div>
 <script>
-// add more scenes here as we build them
+// add more scenes here as we build them. waitIdle scenes (arena) aren't cut
+// mid-action — after `secs` the wall waits for the scene to signal a break.
 const ALL=[
-  {name:"music", url:"/scene/songs",  secs:22, always:true},
-  {name:"arena", url:"/scene/arena",  secs:45, always:true},
-  {name:"blobs", url:"/scene/blobs",  secs:26, always:true},
+  {name:"music", url:"/scene/songs",       secs:22, always:true},
+  {name:"arena", url:"/scene/arena",       secs:40, always:true, waitIdle:true},
+  {name:"board", url:"/scene/leaderboard", secs:14, always:true},
+  {name:"blobs", url:"/scene/blobs",       secs:26, always:true},
 ];
 const frame=document.getElementById("frame"), dotsEl=document.getElementById("dots");
-let deck=[], i=0, timer=null;
+let deck=[], i=0, timer=null, capTimer=null, pendingNext=false;
 
 async function buildDeck(){
   const out=[];
@@ -44,8 +46,16 @@ function show(n){
   frame.classList.add("fade");
   setTimeout(()=>{ frame.src=s.url; }, 500);
   [...dotsEl.children].forEach((d,k)=>d.classList.toggle("on",k===i));
-  clearTimeout(timer); timer=setTimeout(next, s.secs*1000);
+  pendingNext=false; clearTimeout(timer); clearTimeout(capTimer);
+  timer=setTimeout(()=>{
+    if(s.waitIdle){ pendingNext=true; capTimer=setTimeout(next, 30000); } // wait for game to finish (cap 30s)
+    else next();
+  }, s.secs*1000);
 }
+// scene (arena) tells us a game just finished -> safe to fade now
+window.addEventListener("message", e=>{
+  if(e.data && e.data.type==="scene-idle" && pendingNext){ pendingNext=false; clearTimeout(capTimer); next(); }
+});
 frame.onload=()=>frame.classList.remove("fade");
 async function next(){ await buildDeck(); show(i+1); }
 

@@ -178,10 +178,15 @@ const GAMES=[Race,Royale,Pong,Penalty,Marble];
 let g=null, phase="play", resultAt=0, last=performance.now();
 function nextGame(){g=pick(GAMES)();g.init();phase="play";
   document.getElementById("title").textContent=g.title;document.getElementById("sub").textContent=g.sub;}
+function recordWin(){ if(!g||!g.winner)return;
+  const field=(g.ps||g.ms||[]).length||2;   // points = size of the field beaten
+  fetch("/arena/win",{method:"POST",headers:{"Content-Type":"application/json"},
+    body:JSON.stringify({name:g.winner.name,weight:field})}).catch(()=>{});}
+function postIdle(){ try{ if(parent!==window) parent.postMessage({type:"scene-idle"},"*"); }catch(e){} }
 function loop(now){const dt=now-last;last=now;
   ctx.clearRect(0,0,W,H);
   if(g){
-    if(phase==="play"){ if(g.step(dt,now)){phase="result";resultAt=now;} }
+    if(phase==="play"){ if(g.step(dt,now)){phase="result";resultAt=now;recordWin();postIdle();} }
     g.draw();drawParticles();
     if(phase==="result"){
       const win=g.winner;
