@@ -98,12 +98,24 @@ function Pong(){return{title:"PING PONG",sub:"first to 3",
     else if(r.score>=3){this.winner=r;burst(r.px,r.py,r.color);}
     else this.serve();},
   draw(){const pr=this.pr,[l,r]=this.ps;
+    // top scoreboard — big colored names so it's clear who's who
+    ctx.textBaseline="alphabetic";
+    ctx.font='600 clamp(26px,3.2vw,46px) Space Grotesk';
+    ctx.textAlign="left";ctx.fillStyle=l.color;ctx.fillText(l.name,64,110);
+    ctx.textAlign="right";ctx.fillStyle=r.color;ctx.fillText(r.name,W-64,110);
+    ctx.font='700 clamp(30px,3.6vw,54px) Space Grotesk';ctx.fillStyle="#c0caf5";
+    ctx.textAlign="left";ctx.fillText(l.score,64,156);
+    ctx.textAlign="right";ctx.fillText(r.score,W-64,156);
+    // net
     ctx.strokeStyle="#2a2f45";ctx.setLineDash([6,12]);ctx.lineWidth=2;
     ctx.beginPath();ctx.moveTo(W/2,this.top);ctx.lineTo(W/2,this.bot);ctx.stroke();ctx.setLineDash([]);
-    drawBlob(l,l.px,l.py,pr);drawBlob(r,r.px,r.py,pr);
-    ctx.beginPath();ctx.arc(this.bx,this.by,11,0,7);ctx.fillStyle="#c0caf5";ctx.shadowColor="#c0caf5";ctx.shadowBlur=14;ctx.fill();ctx.shadowBlur=0;
-    ctx.fillStyle="#565f89";ctx.font='600 clamp(30px,4vw,52px) Space Grotesk';ctx.textAlign="center";ctx.textBaseline="alphabetic";
-    ctx.fillText(l.score,W/2-70,124);ctx.fillText(r.score,W/2+70,124);}};}
+    // paddles as plain colored blobs (names live in the scoreboard now)
+    for(const p of [l,r]){ctx.save();ctx.shadowColor=p.color;ctx.shadowBlur=22;
+      ctx.beginPath();for(let a=0;a<=Math.PI*2+0.1;a+=0.4){const rr=pr*(1+0.05*Math.sin(a*3+p.ph));
+        const px=p.px+Math.cos(a)*rr,py=p.py+Math.sin(a)*rr;a===0?ctx.moveTo(px,py):ctx.lineTo(px,py);}
+      ctx.closePath();ctx.fillStyle=p.color;ctx.fill();ctx.restore();p.ph+=0.05;}
+    // ball
+    ctx.beginPath();ctx.arc(this.bx,this.by,11,0,7);ctx.fillStyle="#c0caf5";ctx.shadowColor="#c0caf5";ctx.shadowBlur=14;ctx.fill();ctx.shadowBlur=0;}};}
 
 function Penalty(){return{title:"PENALTY KICKS",sub:"shootout",
   init(){this.ps=players(2);this.ps[0].score=0;this.ps[1].score=0;this.kick=0;this.goalY=180;this.newKick();},
@@ -176,7 +188,7 @@ function loop(now){const dt=now-last;last=now;
       if(win){ctx.fillStyle="rgba(22,22,30,.55)";ctx.fillRect(0,H*0.42,W,H*0.16);
         ctx.fillStyle=win.color;ctx.font='700 clamp(30px,5vw,64px) Space Grotesk';ctx.textAlign="center";ctx.textBaseline="middle";
         ctx.fillText(win.name+" wins",W/2,H*0.5);}
-      if(now-resultAt>3400)nextGame();
+      if(now-resultAt>4800)nextGame();  // hold the winner longer before switching
     }
   }
   requestAnimationFrame(loop);
