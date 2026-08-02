@@ -7,6 +7,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="/static/qrcode.js"></script>
 <style>
 :root{
   --bg:#1a1b26; --bg2:#16161e; --card:#1f2335; --card2:#24283b; --line:#2a2f45;
@@ -61,6 +62,11 @@ h1{font-family:var(--display);font-weight:600;font-size:clamp(30px,8vw,42px);mar
 .song.playing{border-color:rgba(158,206,106,.4)}
 .song .tag{font-family:var(--mono);font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--green);flex:none}
 .empty{text-align:center;color:var(--muted);padding:36px 0;font-size:14px}
+.foot{text-align:center;margin-top:44px;padding-top:26px;border-top:1px solid var(--line)}
+.qrwrap{display:inline-block;background:#fff;padding:10px;border-radius:var(--r);border:1px solid var(--line)}
+.qrwrap img{display:block;width:128px;height:128px;image-rendering:pixelated}
+.foourl{font-family:var(--mono);color:var(--ink2);font-size:14px;letter-spacing:.03em;margin-top:14px}
+.foolbl{font-family:var(--mono);color:var(--muted);font-size:11px;letter-spacing:.14em;text-transform:uppercase;margin-top:5px}
 </style>
 </head>
 <body>
@@ -80,6 +86,12 @@ h1{font-family:var(--display);font-weight:600;font-size:clamp(30px,8vw,42px);mar
     <div class="sec-label">up next</div>
     <div id="queue"></div>
   </div>
+
+  <footer class="foot">
+    <div class="qrwrap" id="qrbox"></div>
+    <div class="foourl">party.djiang.xyz</div>
+    <div class="foolbl">scan or share to add songs</div>
+  </footer>
 </div>
 
 <script>
@@ -130,6 +142,10 @@ function row(t, now){
     '<div class="st"><div class="stitle">'+esc(t.title)+'</div><div class="sby">'+esc(t.artist)+'</div></div>'+
     (now?'<span class="tag">now playing</span>':'')+'</div>';
 }
+// QR of this page so people can share it phone-to-phone
+try{ const qr=qrcode(0,"M"); qr.addData(location.origin+"/"); qr.make();
+  document.getElementById("qrbox").innerHTML=qr.createImgTag(4,0); }catch(e){}
+
 loadQueue();
 setInterval(loadQueue, 4000);
 </script>
