@@ -39,6 +39,17 @@ AUTOPILOT_FLOOR = 3   # keep at least this many upcoming
 app = FastAPI()
 
 
+@app.middleware("http")
+async def no_cache_html(request: Request, call_next):
+    """Never cache the app pages/scenes — the wall is a long-lived tab and must
+    pick up changes on reload. Static assets (/static) keep caching."""
+    resp = await call_next(request)
+    p = request.url.path
+    if p == "/" or p.startswith(("/wall", "/scene", "/welcome", "/admin")):
+        resp.headers["Cache-Control"] = "no-store"
+    return resp
+
+
 def db():
     conn = sqlite3.connect(DB)
     conn.row_factory = sqlite3.Row

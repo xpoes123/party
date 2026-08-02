@@ -48,7 +48,7 @@ function show(n){
   [...dotsEl.children].forEach((d,k)=>d.classList.toggle("on",k===i));
   pendingNext=false; clearTimeout(timer); clearTimeout(capTimer);
   timer=setTimeout(()=>{
-    if(s.waitIdle){ pendingNext=true; capTimer=setTimeout(next, 30000); } // wait for game to finish (cap 30s)
+    if(s.waitIdle){ pendingNext=true; capTimer=setTimeout(next, 90000); } // wait for game to finish (generous cap)
     else next();
   }, s.secs*1000);
 }
