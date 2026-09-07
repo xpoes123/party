@@ -1,0 +1,14 @@
+/* Vendored from xpoes123/toolkit web/tokyo-night.css — canonical source, re-copy manually if it changes */
+:root {
+  --bg: #1a1b26;
+  --surface: #24283b;
+  --surface-2: #1f2335;
+  --line: #2f3549;
+  --text: #c0caf5;
+  --muted: #565f89;
+  --blue: #7aa2f7;
+  --purple: #bb9af7;
+  --green: #9ece6a;
+  --red: #f7768e;
+  --yellow: #e0af68;
+}

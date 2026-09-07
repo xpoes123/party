@@ -6,25 +6,26 @@
 <title>the party — welcome</title>
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <script src="/static/qrcode.js"></script>
+<link rel="stylesheet" href="/static/css/tokyo-night.css">
 <style>
 *{box-sizing:border-box;margin:0}
 html,body{height:100%;overflow:hidden}
 body{background:
   radial-gradient(1200px 700px at 80% -10%, rgba(122,162,247,.12), transparent 60%),
   radial-gradient(1000px 700px at 0% 110%, rgba(187,154,247,.09), transparent 55%),
-  #1a1b26;color:#c0caf5;font-family:"Inter",system-ui,sans-serif;
+  var(--bg);color:var(--text);font-family:"Inter",system-ui,sans-serif;
   display:flex;flex-direction:column;align-items:center;justify-content:center;padding:5vh 4vw;text-align:center}
-.kick{font-family:"JetBrains Mono";font-size:clamp(13px,1.3vw,18px);letter-spacing:.34em;text-transform:uppercase;color:#565f89}
+.kick{font-family:"JetBrains Mono";font-size:clamp(13px,1.3vw,18px);letter-spacing:.34em;text-transform:uppercase;color:var(--muted)}
 h1{font-family:"Space Grotesk";font-weight:600;font-size:clamp(48px,8vw,104px);line-height:.95;margin:.12em 0 .28em;letter-spacing:-.02em;
-  background:linear-gradient(100deg,#7aa2f7,#bb9af7);-webkit-background-clip:text;background-clip:text;color:transparent}
+  background:linear-gradient(100deg,var(--blue),var(--purple));-webkit-background-clip:text;background-clip:text;color:transparent}
 .qrbox{background:#fff;padding:clamp(16px,2vw,24px);border-radius:12px;border:1px solid #2a2f45}
 .qrbox img,.qrbox canvas,.qrbox table{display:block;width:clamp(220px,26vw,340px);height:auto;image-rendering:pixelated}
 .scan{font-family:"Space Grotesk";font-weight:500;font-size:clamp(20px,2.4vw,34px);margin-top:28px;color:#a9b1d6}
-.count{font-family:"JetBrains Mono";margin-top:12px;font-size:clamp(13px,1.3vw,18px);color:#565f89;letter-spacing:.1em;text-transform:uppercase}
-.count b{color:#c0caf5;font-family:"Space Grotesk";font-weight:600;font-size:1.4em}
+.count{font-family:"JetBrains Mono";margin-top:12px;font-size:clamp(13px,1.3vw,18px);color:var(--muted);letter-spacing:.1em;text-transform:uppercase}
+.count b{color:var(--text);font-family:"Space Grotesk";font-weight:600;font-size:1.4em}
 .ticker{position:fixed;bottom:0;left:0;right:0;height:64px;display:flex;align-items:center;justify-content:center;
   font-family:"JetBrains Mono";font-weight:500;font-size:clamp(14px,1.5vw,22px);letter-spacing:.06em;
-  background:linear-gradient(180deg,transparent,rgba(22,22,30,.7));color:#9ece6a}
+  background:linear-gradient(180deg,transparent,rgba(22,22,30,.7));color:var(--green)}
 .ticker.pop{animation:pop .5s ease}
 @keyframes pop{0%{transform:scale(.7);opacity:0}60%{transform:scale(1.06)}100%{transform:scale(1);opacity:1}}
 </style>

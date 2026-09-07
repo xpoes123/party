@@ -5,13 +5,14 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>poll scene</title>
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600&family=Inter:wght@400;500&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/static/css/tokyo-night.css">
 <style>
 *{box-sizing:border-box;margin:0}
 html,body{height:100%;overflow:hidden}
-body{background:transparent;color:#c0caf5;font-family:"Inter",system-ui,sans-serif;
+body{background:transparent;color:var(--text);font-family:"Inter",system-ui,sans-serif;
   display:flex;align-items:center;justify-content:center;padding:6vh 6vw}
 .wrap{width:100%;max-width:1100px}
-.kick{font-family:"JetBrains Mono";text-align:center;font-size:clamp(12px,1.2vw,16px);letter-spacing:.24em;text-transform:uppercase;color:#565f89;margin-bottom:16px}
+.kick{font-family:"JetBrains Mono";text-align:center;font-size:clamp(12px,1.2vw,16px);letter-spacing:.24em;text-transform:uppercase;color:var(--muted);margin-bottom:16px}
 .q{font-family:"Space Grotesk";font-weight:600;font-size:clamp(32px,4.6vw,62px);text-align:center;
   line-height:1.04;letter-spacing:-.02em;margin-bottom:6vh}
 .bars{display:flex;flex-direction:column;gap:18px}
@@ -25,8 +26,8 @@ body{background:transparent;color:#c0caf5;font-family:"Inter",system-ui,sans-ser
 .opt{font-family:"Space Grotesk";font-weight:500;font-size:clamp(22px,2.8vw,40px)}
 .pct{font-family:"JetBrains Mono";font-weight:500;font-size:clamp(24px,3vw,44px);
   font-variant-numeric:tabular-nums;color:#a9b1d6}
-.tot{font-family:"JetBrains Mono";text-align:center;color:#565f89;margin-top:26px;font-size:clamp(12px,1.2vw,17px);letter-spacing:.08em;text-transform:uppercase}
-.empty{text-align:center;color:#565f89;font-family:"Space Grotesk";font-size:clamp(22px,2.6vw,36px)}
+.tot{font-family:"JetBrains Mono";text-align:center;color:var(--muted);margin-top:26px;font-size:clamp(12px,1.2vw,17px);letter-spacing:.08em;text-transform:uppercase}
+.empty{text-align:center;color:var(--muted);font-family:"Space Grotesk";font-size:clamp(22px,2.6vw,36px)}
 </style>
 </head>
 <body>

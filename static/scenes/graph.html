@@ -6,18 +6,19 @@
 <title>graph scene</title>
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600&family=Inter:wght@400;500&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <script src="/static/cytoscape.min.js"></script>
+<link rel="stylesheet" href="/static/css/tokyo-night.css">
 <style>
 *{box-sizing:border-box;margin:0}
 html,body{height:100%;overflow:hidden}
-body{background:transparent;color:#c0caf5;font-family:"Inter",system-ui,sans-serif}
+body{background:transparent;color:var(--text);font-family:"Inter",system-ui,sans-serif}
 .top{position:fixed;top:0;left:0;right:0;z-index:5;display:flex;justify-content:space-between;
   align-items:flex-start;padding:30px 44px;pointer-events:none}
 .title{font-family:"Space Grotesk";font-weight:600;font-size:clamp(24px,2.6vw,40px);line-height:1;letter-spacing:-.02em;
-  background:linear-gradient(100deg,#7aa2f7,#bb9af7);
+  background:linear-gradient(100deg,var(--blue),var(--purple));
   -webkit-background-clip:text;background-clip:text;color:transparent}
-.sub{font-family:"JetBrains Mono";font-size:clamp(11px,1vw,14px);color:#565f89;margin-top:8px;letter-spacing:.1em;text-transform:uppercase}
-.stat{text-align:right;font-family:"JetBrains Mono";font-size:clamp(12px,1.2vw,16px);color:#565f89;letter-spacing:.06em}
-.stat b{color:#c0caf5;font-size:1.5em;font-family:"Space Grotesk";font-weight:600}
+.sub{font-family:"JetBrains Mono";font-size:clamp(11px,1vw,14px);color:var(--muted);margin-top:8px;letter-spacing:.1em;text-transform:uppercase}
+.stat{text-align:right;font-family:"JetBrains Mono";font-size:clamp(12px,1.2vw,16px);color:var(--muted);letter-spacing:.06em}
+.stat b{color:var(--text);font-size:1.5em;font-family:"Space Grotesk";font-weight:600}
 #cy{position:fixed;inset:0}
 </style>
 </head>
