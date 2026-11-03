@@ -1,11 +1,11 @@
 <!doctype html>
 <html lang="en">
-<head>
+<head><link rel="stylesheet" href="https://share.djiang.xyz/ui/ui.css">
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>blob battle</title>
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="/static/css/tokyo-night.css">
+
 <style>
 *{box-sizing:border-box;margin:0}
 html,body{height:100%;overflow:hidden;background:transparent}
@@ -36,7 +36,7 @@ const rnd=(a,b)=>a+Math.random()*(b-a);
 function newBlob(x,color,name){return {x,y:H/2,vx:0,vy:0,r:26,color,name,ph:Math.random()*6};}
 let blobs, food, winner, winAt, particles;
 function reset(){
-  blobs=[newBlob(W*0.3,"#7aa2f7",names[0]), newBlob(W*0.7,"#f7768e",names[1])];
+  blobs=[newBlob(W*0.3,"var(--accent)",names[0]), newBlob(W*0.7,"var(--bad)",names[1])];
   food=[]; for(let i=0;i<46;i++) spawnFood();
   particles=[]; winner=null; winAt=0;
 }
@@ -87,8 +87,8 @@ function blobPath(b){ ctx.beginPath();
 function draw(){
   ctx.clearRect(0,0,W,H);
   // food
-  for(const f of food){ ctx.beginPath();ctx.arc(f.x,f.y,f.r,0,7);ctx.fillStyle="#e0af68";
-    ctx.shadowColor="#e0af68";ctx.shadowBlur=10;ctx.fill();ctx.shadowBlur=0; }
+  for(const f of food){ ctx.beginPath();ctx.arc(f.x,f.y,f.r,0,7);ctx.fillStyle="var(--warn)";
+    ctx.shadowColor="var(--warn)";ctx.shadowBlur=10;ctx.fill();ctx.shadowBlur=0; }
   // particles
   for(let i=particles.length-1;i>=0;i--){ const p=particles[i];
     p.x+=p.vx;p.y+=p.vy;p.life-=0.04; if(p.life<=0){particles.splice(i,1);continue;}
@@ -96,7 +96,7 @@ function draw(){
   // blobs
   for(const b of blobs){ ctx.shadowColor=b.color;ctx.shadowBlur=30;
     blobPath(b);ctx.fillStyle=b.color;ctx.globalAlpha=.9;ctx.fill();ctx.globalAlpha=1;ctx.shadowBlur=0;
-    ctx.fillStyle="#16161e";ctx.font='600 '+Math.max(13,b.r*0.42)+'px Space Grotesk';
+    ctx.fillStyle="var(--bg)";ctx.font='600 '+Math.max(13,b.r*0.42)+'px Space Grotesk';
     ctx.textAlign="center";ctx.textBaseline="middle";ctx.fillText(b.name,b.x,b.y); }
   // score
   const sc=document.getElementById("score");

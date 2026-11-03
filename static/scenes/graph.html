@@ -1,12 +1,12 @@
 <!doctype html>
 <html lang="en">
-<head>
+<head><link rel="stylesheet" href="https://share.djiang.xyz/ui/ui.css">
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>graph scene</title>
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600&family=Inter:wght@400;500&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <script src="/static/cytoscape.min.js"></script>
-<link rel="stylesheet" href="/static/css/tokyo-night.css">
+
 <style>
 *{box-sizing:border-box;margin:0}
 html,body{height:100%;overflow:hidden}
@@ -30,7 +30,7 @@ body{background:transparent;color:var(--text);font-family:"Inter",system-ui,sans
 <div id="cy"></div>
 <script>
 let cy=null, lastSig="";
-const PAL=["#7aa2f7","#bb9af7","#9ece6a","#e0af68","#7dcfff","#f7768e","#73daca","#ff9e64"];
+const PAL=["var(--accent)","var(--purple)","var(--ok)","var(--warn)","var(--info)","var(--bad)","var(--info)","var(--warn)"];
 
 // weighted community detection. hubs (who know almost everyone) bridge every
 // group, so exclude them from detection then slot them into their strongest group.
@@ -71,10 +71,10 @@ function build(els, relayout){
   if(!cy){
     cy=cytoscape({container:document.getElementById("cy"),elements:els,minZoom:.3,maxZoom:2.5,
       style:[
-        {selector:"node",style:{"background-color":"data(color)","label":"data(label)","color":"#c0caf5",
+        {selector:"node",style:{"background-color":"data(color)","label":"data(label)","color":"var(--text)",
           "font-family":"Space Grotesk","font-weight":500,"font-size":21,"text-valign":"bottom","text-margin-y":10,
           "width":"mapData(deg,0,12,34,68)","height":"mapData(deg,0,12,34,68)",
-          "border-width":3,"border-color":"#1a1b26","text-outline-color":"#16161e","text-outline-width":4}},
+          "border-width":3,"border-color":"var(--bg)","text-outline-color":"var(--bg)","text-outline-width":4}},
         {selector:"edge",style:{"width":"mapData(weight,0,100,2,7)","line-color":"data(ecolor)",
           "opacity":"mapData(weight,0,100,.4,.9)","curve-style":"straight"}},
         {selector:"edge[!same]",style:{"opacity":0.12,"width":1.5,"line-style":"dashed"}}

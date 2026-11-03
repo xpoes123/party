@@ -1,11 +1,11 @@
 <!doctype html>
 <html lang="en">
-<head>
+<head><link rel="stylesheet" href="https://share.djiang.xyz/ui/ui.css">
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>songs scene</title>
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600&family=Inter:wght@400;500&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="/static/css/tokyo-night.css">
+
 <style>
 *{box-sizing:border-box;margin:0}
 html,body{height:100%;overflow:hidden}
@@ -15,14 +15,14 @@ body{background:transparent;color:var(--text);font-family:"Inter",system-ui,sans
   background:linear-gradient(100deg,var(--blue),var(--purple));-webkit-background-clip:text;background-clip:text;color:transparent}
 .sub{font-family:"JetBrains Mono";color:var(--muted);font-size:clamp(12px,1.2vw,16px);letter-spacing:.1em;text-transform:uppercase}
 .list{display:flex;flex-direction:column;gap:14px}
-.row{display:flex;align-items:center;gap:20px;background:#1f2335;border:1px solid #2a2f45;
+.row{display:flex;align-items:center;gap:20px;background:var(--surface-2);border:1px solid #2a2f45;
   border-radius:8px;padding:clamp(14px,2vh,20px) clamp(18px,2.5vw,28px)}
 .row.now{border-color:rgba(158,206,106,.5)}
-.num{font-family:"JetBrains Mono";font-weight:500;font-size:clamp(20px,2.2vw,34px);color:#414868;
+.num{font-family:"JetBrains Mono";font-weight:500;font-size:clamp(20px,2.2vw,34px);color:var(--line-2);
   min-width:1.4em;text-align:center}
 .now .num{color:var(--green)}
 .art{width:clamp(48px,5vw,76px);height:clamp(48px,5vw,76px);border-radius:6px;flex:none;
-  object-fit:cover;background:#24283b}
+  object-fit:cover;background:var(--surface)}
 .info{flex:1;min-width:0}
 .t{font-family:"Space Grotesk";font-weight:500;font-size:clamp(20px,2.2vw,34px);
   white-space:nowrap;overflow:hidden;text-overflow:ellipsis}

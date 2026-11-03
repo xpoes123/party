@@ -1,11 +1,11 @@
 <!doctype html>
 <html lang="en">
-<head>
+<head><link rel="stylesheet" href="https://share.djiang.xyz/ui/ui.css">
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>arena</title>
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="/static/css/tokyo-night.css">
+
 <style>
 *{box-sizing:border-box;margin:0}
 html,body{height:100%;overflow:hidden;background:transparent}
@@ -21,7 +21,7 @@ html,body{height:100%;overflow:hidden;background:transparent}
 <script>
 const cv=document.getElementById("c"), ctx=cv.getContext("2d");
 let W,H; function fit(){W=cv.width=innerWidth;H=cv.height=innerHeight;} fit(); addEventListener("resize",fit);
-const PAL=["#7aa2f7","#bb9af7","#9ece6a","#e0af68","#7dcfff","#f7768e","#73daca","#ff9e64"];
+const PAL=["var(--accent)","var(--purple)","var(--ok)","var(--warn)","var(--info)","var(--bad)","var(--info)","var(--warn)"];
 const rnd=(a,b)=>a+Math.random()*(b-a);
 const pick=arr=>arr[Math.floor(Math.random()*arr.length)];
 function shuffle(a){a=a.slice();for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}return a;}
@@ -45,7 +45,7 @@ function drawBlob(b,x,y,r){
     const px=x+Math.cos(a)*rr,py=y+Math.sin(a)*rr; a===0?ctx.moveTo(px,py):ctx.lineTo(px,py);}
   ctx.closePath();ctx.fillStyle=b.color;ctx.globalAlpha=b.alive===false?0.15:0.92;ctx.fill();
   ctx.restore();
-  ctx.fillStyle=b.alive===false?"#414868":"#c0caf5";ctx.font='500 15px Space Grotesk';
+  ctx.fillStyle=b.alive===false?"var(--line-2)":"var(--text)";ctx.font='500 15px Space Grotesk';
   ctx.textAlign="center";ctx.textBaseline="top";ctx.fillText(b.name,x,y+r+8);
 }
 function shortName(n){return n.length>7?n[0].toUpperCase():n;}
@@ -104,7 +104,7 @@ function Pong(){return{title:"PING PONG",sub:"first to 3",
     ctx.font='600 clamp(26px,3.2vw,46px) Space Grotesk';
     ctx.textAlign="left";ctx.fillStyle=l.color;ctx.fillText(l.name,64,110);
     ctx.textAlign="right";ctx.fillStyle=r.color;ctx.fillText(r.name,W-64,110);
-    ctx.font='700 clamp(30px,3.6vw,54px) Space Grotesk';ctx.fillStyle="#c0caf5";
+    ctx.font='700 clamp(30px,3.6vw,54px) Space Grotesk';ctx.fillStyle="var(--text)";
     ctx.textAlign="left";ctx.fillText(l.score,64,156);
     ctx.textAlign="right";ctx.fillText(r.score,W-64,156);
     // net
@@ -116,7 +116,7 @@ function Pong(){return{title:"PING PONG",sub:"first to 3",
         const px=p.px+Math.cos(a)*rr,py=p.py+Math.sin(a)*rr;a===0?ctx.moveTo(px,py):ctx.lineTo(px,py);}
       ctx.closePath();ctx.fillStyle=p.color;ctx.fill();ctx.restore();p.ph+=0.05;}
     // ball
-    ctx.beginPath();ctx.arc(this.bx,this.by,11,0,7);ctx.fillStyle="#c0caf5";ctx.shadowColor="#c0caf5";ctx.shadowBlur=14;ctx.fill();ctx.shadowBlur=0;}};}
+    ctx.beginPath();ctx.arc(this.bx,this.by,11,0,7);ctx.fillStyle="var(--text)";ctx.shadowColor="var(--text)";ctx.shadowBlur=14;ctx.fill();ctx.shadowBlur=0;}};}
 
 function Penalty(){return{title:"PENALTY KICKS",sub:"shootout",
   init(){this.ps=players(2);this.ps[0].score=0;this.ps[1].score=0;this.kick=0;this.goalY=180;this.newKick();},
@@ -143,10 +143,10 @@ function Penalty(){return{title:"PENALTY KICKS",sub:"shootout",
     drawBlob(kp,W/2+(this.keepXt-W/2)*p,this.goalY+38,28);
     drawBlob(sh,this.startX,this.startY,30);
     const bx=this.startX+(this.endX-this.startX)*p,by=this.startY+(this.endY-this.startY)*p;
-    ctx.beginPath();ctx.arc(bx,by,10,0,7);ctx.fillStyle="#c0caf5";ctx.shadowColor="#c0caf5";ctx.shadowBlur=12;ctx.fill();ctx.shadowBlur=0;
-    ctx.fillStyle="#565f89";ctx.font='600 clamp(24px,3vw,40px) Space Grotesk';ctx.textAlign="center";ctx.textBaseline="alphabetic";
+    ctx.beginPath();ctx.arc(bx,by,10,0,7);ctx.fillStyle="var(--text)";ctx.shadowColor="var(--text)";ctx.shadowBlur=12;ctx.fill();ctx.shadowBlur=0;
+    ctx.fillStyle="var(--muted)";ctx.font='600 clamp(24px,3vw,40px) Space Grotesk';ctx.textAlign="center";ctx.textBaseline="alphabetic";
     ctx.fillText(this.ps[0].name+"  "+this.ps[0].score+" – "+this.ps[1].score+"  "+this.ps[1].name,W/2,H-40);
-    if(this.result){ctx.fillStyle=this.result==="GOAL"?"#9ece6a":"#f7768e";ctx.font='700 clamp(26px,3.4vw,46px) Space Grotesk';
+    if(this.result){ctx.fillStyle=this.result==="GOAL"?"var(--ok)":"var(--bad)";ctx.font='700 clamp(26px,3.4vw,46px) Space Grotesk';
       ctx.fillText(this.result,W/2,this.goalY-44);}}};}
 
 function Marble(){return{title:"MARBLE RACE",sub:"first to the bottom",
