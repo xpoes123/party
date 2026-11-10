@@ -140,6 +140,8 @@ def test():
 
     # admin key enforced
     assert c.get("/admin/guests").status_code == 403
+    # no unauthenticated route may hand out the key
+    assert c.get("/admin-entry", follow_redirects=False).status_code == 404
 
     print("all checks passed ✓")
 
