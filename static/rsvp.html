@@ -6,44 +6,71 @@
 <title>RSVP</title>
 <link rel="stylesheet" href="https://share.djiang.xyz/ui/ui.css">
 <style>
-  main { max-width: 480px; margin: 0 auto; padding: var(--space-6) var(--space-4); }
-  .title { font: 700 2rem/1.15 var(--font-sans); margin: var(--space-2) 0; }
-  .meta { color: var(--text-2); }
-  .blurb { white-space: pre-line; margin: var(--space-4) 0; }
+  main { max-width: 520px; margin: 0 auto; padding: 0 var(--space-4) var(--space-6); }
+  .cover { width: calc(100% + 2 * var(--space-4)); margin: 0 calc(-1 * var(--space-4)); aspect-ratio: 16 / 10;
+    object-fit: cover; display: block; background: var(--surface-2); }
+  .title { font: 700 2.1rem/1.1 var(--font-sans); margin: var(--space-4) 0 var(--space-3); }
+  .facts { display: grid; gap: var(--space-2); margin-bottom: var(--space-4); }
+  .fact { display: flex; gap: var(--space-3); align-items: baseline; }
+  .fact .ico { width: 1.4em; text-align: center; flex: none; }
+  .fact a { color: var(--accent); }
+  .blurb { white-space: pre-line; color: var(--text-2); margin: 0 0 var(--space-4); }
   .choices { display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--space-2); }
   .choices .ui-btn { padding: var(--space-3) 0; font-size: var(--text-md); }
-  .choices .ui-btn.on { outline: 2px solid var(--accent); }
+  .choices .ui-btn.on { outline: 2px solid var(--accent); outline-offset: 2px; }
+  .people { display: flex; flex-wrap: wrap; gap: var(--space-2); margin-top: var(--space-2); }
+  .person { display: flex; flex-direction: column; align-items: center; gap: 4px; width: 56px; font-size: var(--text-xs); color: var(--text-2); }
+  .av { width: 40px; height: 40px; border-radius: 50%; display: grid; place-items: center; font-weight: 600;
+    background: var(--surface-2); border: 1px solid var(--line-2); color: var(--text); }
+  .maybe .av { opacity: .55; }
   input.ui-input { width: 100%; box-sizing: border-box; }
-  [hidden] { display: none !important; }
+  section { margin-top: var(--space-5); }
 </style>
 </head>
 <body class="ui-page">
-<main id="app"><p class="ui-muted">Loading…</p></main>
+<main id="app"><p class="ui-muted" style="padding-top:var(--space-6)">Loading…</p></main>
 <script>
 const [, , slug, token] = location.pathname.split('/');
 const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 const LABEL = { going: "I'm in", maybe: 'Maybe', no: "Can't" };
-const DONE = { going: 'See you there 🎉', maybe: 'Got it, maybe. Change it any time.', no: "Sorry you'll miss it." };
+const DONE = { going: 'You\'re in. See you there 🎉', maybe: 'Marked maybe. Change it any time.', no: "Sorry you'll miss it." };
+const app = document.getElementById('app');
+
+function when(e) {
+  if (!e.at) return esc(e.starts);
+  const d = new Date(e.at);  // 'YYYY-MM-DDTHH:MM' parses as local time
+  return d.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' }) + ' · ' +
+    d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+}
+const faces = (names, cls) => names.map(n => `<div class="person ${cls}"><div class="av">${esc(n[0] || '?')}</div>${esc(n)}</div>`).join('');
 
 async function load() {
   const r = await fetch(`/api/e/${slug}` + (token ? `?t=${encodeURIComponent(token)}` : ''));
-  if (!r.ok) { app.innerHTML = '<p>This event link doesn\'t exist.</p>'; return; }
-  const { event: e, me, going } = await r.json();
+  if (!r.ok) { app.innerHTML = '<p style="padding-top:var(--space-6)">This event link doesn\'t exist.</p>'; return; }
+  const { event: e, me, going, maybe } = await r.json();
   document.title = e.title;
-  const open = !me;
+  const where = e.address
+    ? `<a href="https://maps.apple.com/?q=${encodeURIComponent(e.address)}">${esc(e.address)}</a>`
+    : `${esc(e.place || '')}${e.place ? ' · ' : ''}<span class="ui-muted">address shown after you RSVP</span>`;
   app.innerHTML = `
-    <div class="ui-label">You're invited${me ? ', ' + esc(me.name.split(' ')[0]) : ''}</div>
+    ${e.cover ? `<img class="cover" src="${esc(e.cover)}" alt="">` : '<div style="height:var(--space-6)"></div>'}
+    <div class="ui-label" style="margin-top:var(--space-4)">${me ? 'You\'re invited, ' + esc(me.name.split(' ')[0]) : 'You\'re invited'}</div>
     <h1 class="title">${esc(e.title)}</h1>
-    <div class="meta">${esc(e.starts)}${e.place ? ' · ' + esc(e.place) : ''}</div>
+    <div class="facts">
+      <div class="fact"><span class="ico">🗓</span><span>${when(e)}${me && e.at ? ` · <a href="/api/e/${slug}/cal.ics?t=${encodeURIComponent(token)}">add to calendar</a>` : ''}</span></div>
+      <div class="fact"><span class="ico">📍</span><span>${where}</span></div>
+      <div class="fact"><span class="ico">🏠</span><span>Hosted by David &amp; Stephanie</span></div>
+    </div>
     ${e.blurb ? `<p class="blurb">${esc(e.blurb)}</p>` : ''}
     <div class="ui-card ui-stack">
-      ${open ? `<input class="ui-input" id="name" placeholder="Your name" autocomplete="name">
-        <input class="ui-input" id="phone" placeholder="Phone number" type="tel" autocomplete="tel">` : ''}
+      ${me ? '' : `<input class="ui-input" id="name" placeholder="Your name" autocomplete="name">
+        <input class="ui-input" id="phone" placeholder="Phone number" type="tel" autocomplete="tel">`}
       <div class="choices">${Object.entries(LABEL).map(([k, l]) =>
         `<button class="ui-btn ${k === 'going' ? 'ui-btn--primary' : ''} ${me?.status === k ? 'on' : ''}" onclick="send('${k}')">${l}</button>`).join('')}</div>
       <div id="msg" class="ui-muted">${me?.status ? DONE[me.status] : ''}</div>
     </div>
-    ${going.length ? `<p class="ui-muted" style="margin-top:var(--space-4)">${going.length} going: ${going.map(esc).join(', ')}</p>` : ''}`;
+    ${going.length || maybe.length ? `<section><div class="ui-label">${going.length} going${maybe.length ? ` · ${maybe.length} maybe` : ''}</div>
+      <div class="people">${faces(going, '')}${faces(maybe, 'maybe')}</div></section>` : ''}`;
 }
 
 async function send(status) {
@@ -55,7 +82,6 @@ async function send(status) {
   if (!token) { location.replace(`/e/${slug}/${t}`); return; }  // personal link from now on
   load();
 }
-const app = document.getElementById('app');
 load();
 </script>
 </body>

@@ -122,6 +122,11 @@ def init():
         cols = [r["name"] for r in conn.execute("PRAGMA table_info(edges)")]
         if "weight" not in cols:
             conn.execute("ALTER TABLE edges ADD COLUMN weight INTEGER NOT NULL DEFAULT 50")
+        # event details added after the first RSVP release
+        cols = [r["name"] for r in conn.execute("PRAGMA table_info(events)")]
+        for col in ("at", "address", "cover"):  # at = local 'YYYY-MM-DDTHH:MM'
+            if col not in cols:
+                conn.execute(f"ALTER TABLE events ADD COLUMN {col} TEXT NOT NULL DEFAULT ''")
 
 
 init()

@@ -3,3 +3,4 @@ node_modules/
 *.log
 .DS_Store
 party.db
+contacts.json
