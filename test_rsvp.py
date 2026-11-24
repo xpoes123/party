@@ -72,6 +72,8 @@ def test():
     # unknown event
     assert c.get("/api/e/nope").status_code == 404
     assert c.get("/e/poker").status_code == 200
+    assert c.get("/").status_code == 200 and c.get("/music").status_code == 200
+    assert [e["slug"] for e in c.get("/api/events").json()] == ["poker"]
     print("ok")
 
 

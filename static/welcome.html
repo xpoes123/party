@@ -38,7 +38,7 @@ h1{font-family:"Space Grotesk";font-weight:600;font-size:clamp(48px,8vw,104px);l
 <div class="ticker" id="ticker">any song · it plays next · no app needed</div>
 <script>
 // QR encodes ?url= (final domain) or this page's origin by default
-const joinUrl = new URLSearchParams(location.search).get("url") || location.origin + "/";
+const joinUrl = new URLSearchParams(location.search).get("url") || location.origin + "/music";
 const qr=qrcode(0,"M"); qr.addData(joinUrl); qr.make();
 document.getElementById("qrbox").innerHTML=qr.createImgTag(8,0);
 </script>

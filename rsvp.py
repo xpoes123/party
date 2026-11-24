@@ -39,6 +39,17 @@ def _going(conn, slug: str) -> list[str]:
     return [r["name"].split()[0] for r in rows]
 
 
+@router.get("/")
+def home():
+    return FileResponse(os.path.join(party.STATIC, "home.html"))
+
+
+@router.get("/api/events")
+def events():
+    with closing(party.db()) as conn:
+        return [dict(r) for r in conn.execute("SELECT slug, title, starts, place FROM events ORDER BY rowid")]
+
+
 @router.get("/e/{slug}")
 @router.get("/e/{slug}/{token}")
 def page(slug: str, token: str = ""):

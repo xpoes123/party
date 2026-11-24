@@ -78,7 +78,7 @@ h1{font-family:var(--display);font-weight:600;font-size:clamp(30px,8vw,42px);mar
 
   <div class="qrtop">
     <div class="qrwrap" id="qrbox"></div>
-    <div class="foourl">party.djiang.xyz · scan or share to add songs</div>
+    <div class="foourl">party.djiang.xyz/music · scan or share to add songs</div>
   </div>
 
   <div id="offline" class="empty" hidden>Song requests aren't open yet — hang tight.</div>
@@ -141,7 +141,7 @@ function row(t, now){
     (now?'<span class="tag">now playing</span>':'')+'</div>';
 }
 // QR of this page so people can share it phone-to-phone
-try{ const qr=qrcode(0,"M"); qr.addData(location.origin+"/"); qr.make();
+try{ const qr=qrcode(0,"M"); qr.addData(location.origin+"/music"); qr.make();
   document.getElementById("qrbox").innerHTML=qr.createImgTag(4,0); }catch(e){}
 
 loadQueue();
