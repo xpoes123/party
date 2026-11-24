@@ -21,7 +21,11 @@
   <div class="ui-card ui-stack">
     <div class="ui-label">Event</div>
     <div class="two"><input class="ui-input" id="slug" placeholder="slug (e.g. poker-1204)"><input class="ui-input" id="title" placeholder="Title"></div>
-    <div class="two"><input class="ui-input" id="starts" placeholder="When (e.g. Thu 12/4, 8pm)"><input class="ui-input" id="place" placeholder="Where"></div>
+    <div class="two"><input class="ui-input" id="at" type="datetime-local"><input class="ui-input" id="place" placeholder="Short place name (shown to everyone)"></div>
+    <input class="ui-input" id="address" placeholder="Full address (shown only to invited people)">
+    <div class="ui-flex"><img id="cover-img" alt="" style="height:64px;border-radius:var(--radius-sm);display:none">
+      <label class="ui-btn ui-btn--sm">Cover photo… <input type="file" accept="image/*" hidden onchange="cover(this.files[0])"></label>
+      <span class="ui-muted" id="cover-msg"></span></div>
     <textarea class="ui-input" id="blurb" rows="3" placeholder="Blurb shown to guests"></textarea>
     <div class="ui-flex"><button class="ui-btn ui-btn--primary" onclick="save()">Save event</button>
       <span class="ui-muted" id="links"></span></div>
@@ -31,7 +35,13 @@
     <div class="ui-flex counts" id="counts"></div>
 
     <div class="ui-card ui-stack">
-      <div class="ui-label">Add invitees: one <code>Name, phone</code> per line</div>
+      <div class="ui-label">Invite from your contacts</div>
+      <input class="ui-input" id="cq" placeholder="Search a name, e.g. Sam" oninput="pickList()">
+      <div id="cres" class="ui-stack" style="--gap:var(--space-1)"></div>
+    </div>
+
+    <div class="ui-card ui-stack">
+      <div class="ui-label">Or paste: one <code>Name, phone</code> per line</div>
       <textarea class="ui-input" id="lines" rows="4" placeholder="Leo Park, 917-555-0101"></textarea>
       <div class="ui-flex"><button class="ui-btn" onclick="invite()">Add</button><span class="ui-muted" id="inv-msg"></span></div>
     </div>
@@ -67,10 +77,12 @@ async function list() {
 }
 async function show(slug) {
   cur = slug; $('detail').hidden = !slug;
-  if (!slug) { ['slug', 'title', 'starts', 'place', 'blurb'].forEach(k => $(k).value = ''); $('links').textContent = ''; return; }
+  if (!slug) { ['slug', 'title', 'at', 'place', 'address', 'blurb'].forEach(k => $(k).value = ''); $('links').textContent = ''; return; }
   const { event: e, invites } = await api(`/admin/e/${slug}`);
-  ['slug', 'title', 'starts', 'place', 'blurb'].forEach(k => $(k).value = e[k]);
+  ['slug', 'title', 'at', 'place', 'address', 'blurb'].forEach(k => $(k).value = e[k]);
+  $('cover-img').src = e.cover; $('cover-img').style.display = e.cover ? '' : 'none';
   $('links').innerHTML = `Open link: <a href="/e/${slug}" target="_blank">${location.origin}/e/${slug}</a>`;
+  invited = new Set(invites.map(i => i.phone)); pickList();
   const n = s => invites.filter(i => i.status === s).length;
   $('counts').innerHTML = [['Going', n('going')], ['Maybe', n('maybe')], ["Can't", n('no')], ['No reply', n('')]]
     .map(([l, v]) => `<div class="ui-stat"><div class="ui-stat__label">${l}</div><div class="ui-stat__value">${v}</div></div>`).join('');
@@ -82,13 +94,37 @@ async function show(slug) {
   preview();
 }
 async function save() {
-  const b = Object.fromEntries(['slug', 'title', 'starts', 'place', 'blurb'].map(k => [k, $(k).value]));
+  const b = Object.fromEntries(['slug', 'title', 'at', 'place', 'address', 'blurb'].map(k => [k, $(k).value]));
   try { await api('/admin/event', { method: 'POST', body: JSON.stringify(b) }); cur = b.slug; list(); } catch (e) { alert(e); }
 }
 async function invite() {
   const r = await api(`/admin/e/${cur}/invite`, { method: 'POST', body: JSON.stringify({ lines: $('lines').value }) });
   $('inv-msg').textContent = `Added ${r.added}` + (r.skipped.length ? `. Couldn't read: ${r.skipped.join(' | ')}` : '');
   $('lines').value = r.skipped.join('\n'); show(cur);
+}
+let contacts = [], invited = new Set();
+api('/admin/contacts').then(c => contacts = c);
+function pickList() {
+  const q = $('cq').value.trim().toLowerCase();
+  const hits = q ? contacts.filter(([n]) => n.toLowerCase().includes(q)).slice(0, 8) : [];
+  $('cres').innerHTML = hits.map(([n, p], i) => `<div class="ui-flex"><span>${esc(n)}</span><span class="ui-muted ui-mono">${p}</span><span class="ui-spacer"></span>
+    ${invited.has(p) ? '<span class="ui-pill ui-pill--ok">invited</span>' : `<button class="ui-btn ui-btn--sm ui-btn--primary" data-i="${i}">+ invite</button>`}</div>`).join('')
+    || (q ? `<span class="ui-muted">${contacts.length ? 'No match.' : 'No contacts synced yet (run sync_contacts.sh).'}</span>` : '');
+  $('cres').querySelectorAll('button[data-i]').forEach(b => b.onclick = async () => {
+    const [n, p] = hits[b.dataset.i];
+    await api(`/admin/e/${cur}/invite`, { method: 'POST', body: JSON.stringify({ lines: `${n}, ${p}` }) });
+    await show(cur);
+  });
+}
+// shrink to ≤1600px JPEG in the browser so phone photos upload fast
+async function cover(file) {
+  if (!file || !cur) { $('cover-msg').textContent = 'Save the event first.'; return; }
+  const img = await createImageBitmap(file), k = Math.min(1, 1600 / Math.max(img.width, img.height));
+  const cv = Object.assign(document.createElement('canvas'), { width: img.width * k, height: img.height * k });
+  cv.getContext('2d').drawImage(img, 0, 0, cv.width, cv.height);
+  $('cover-msg').textContent = 'Uploading…';
+  try { await api(`/admin/e/${cur}/cover`, { method: 'POST', body: JSON.stringify({ data: cv.toDataURL('image/jpeg', 0.85) }) });
+    $('cover-msg').textContent = ''; show(cur); } catch (e) { $('cover-msg').textContent = e; }
 }
 async function drop(id) { if (confirm('Remove this invite?')) { await api(`/admin/invite/${id}`, { method: 'DELETE' }); show(cur); } }
 async function preview() {

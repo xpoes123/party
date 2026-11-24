@@ -69,6 +69,33 @@ def test():
     assert c.delete(f"/admin/invite/{leo['id']}", headers=AK).status_code == 200
     assert c.get("/api/e/poker").json()["going"] == []
 
+    # details: time, address (invited only), maybes, calendar file, cover image
+    assert c.post("/admin/event", json={"slug": "poker", "title": "Poker night", "at": "12/4 8pm"}, headers=AK).status_code == 400
+    c.post("/admin/event", json={"slug": "poker", "title": "Poker night", "at": "2026-12-04T20:00",
+                                 "address": "1 Main St, Apt 2"}, headers=AK)
+    sam = c.post("/api/e/poker/rsvp", json={"name": "Sam", "phone": "9175550102", "status": "maybe"}).json()["token"]
+    pub = c.get("/api/e/poker").json()
+    assert pub["event"]["address"] == "" and pub["event"]["at"] == "2026-12-04T20:00"
+    assert sorted(pub["maybe"]) == ["Nina", "Sam"]
+    assert c.get(f"/api/e/poker?t={sam}").json()["event"]["address"] == "1 Main St, Apt 2"
+    cal = c.get(f"/api/e/poker/cal.ics?t={sam}")
+    assert cal.status_code == 200 and "DTSTART;TZID=America/New_York:20261204T200000" in cal.text
+    assert "DTEND;TZID=America/New_York:20261204T230000" in cal.text and "1 Main St" in cal.text
+    assert c.get("/api/e/poker/cal.ics?t=nope").status_code == 404
+    png = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg=="
+    assert c.post("/admin/e/poker/cover", json={"data": png}).status_code == 403
+    assert c.post("/admin/e/poker/cover", json={"data": "data:text/html;base64,PGI+"}, headers=AK).status_code == 400
+    cover = c.post("/admin/e/poker/cover", json={"data": png}, headers=AK).json()["cover"]
+    assert c.get("/api/e/poker").json()["event"]["cover"] == cover
+    assert c.get(cover).content[:4] == b"\x89PNG"
+
+    # contacts picker source: admin only, empty before the first sync
+    assert c.get("/admin/contacts").status_code == 403
+    assert c.get("/admin/contacts", headers=AK).json() == []
+    with open(os.path.join(_tmp, "contacts.json"), "w") as f:
+        f.write('[["Test Person", "+19175550123"]]')
+    assert c.get("/admin/contacts", headers=AK).json() == [["Test Person", "+19175550123"]]
+
     # unknown event
     assert c.get("/api/e/nope").status_code == 404
     assert c.get("/e/poker").status_code == 200

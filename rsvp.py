@@ -1,13 +1,16 @@
 """Event RSVPs (Partiful-lite). Phone number is the guest identity; no login.
 See docs/superpowers/specs/2026-11-24-event-rsvp-design.md."""
+import base64
+import json
 import os
 import re
 import secrets
 import time
 from contextlib import closing
+from datetime import datetime, timedelta
 
 from fastapi import APIRouter, HTTPException, Request
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, Response
 
 import app as party
 
@@ -34,9 +37,15 @@ def _event(conn, slug: str):
     return ev
 
 
-def _going(conn, slug: str) -> list[str]:
-    rows = conn.execute("SELECT name FROM invites WHERE slug=? AND status='going' ORDER BY updated", (slug,))
+def _going(conn, slug: str, status: str = "going") -> list[str]:
+    rows = conn.execute("SELECT name FROM invites WHERE slug=? AND status=? ORDER BY updated", (slug, status))
     return [r["name"].split()[0] for r in rows]
+
+
+def _uploads() -> str:
+    path = os.path.join(os.path.dirname(party.DB), "uploads")
+    os.makedirs(path, exist_ok=True)
+    return path
 
 
 @router.get("/")
@@ -59,9 +68,41 @@ def page(slug: str, token: str = ""):
 @router.get("/api/e/{slug}")
 def public(slug: str, t: str = ""):
     with closing(party.db()) as conn:
-        ev = _event(conn, slug)
+        ev = dict(_event(conn, slug))
         me = conn.execute("SELECT name, status FROM invites WHERE slug=? AND token=?", (slug, t)).fetchone() if t else None
-        return {"event": dict(ev), "me": dict(me) if me else None, "going": _going(conn, slug)}
+        if not me:  # the open link is shareable; the address is for invited people only
+            ev["address"] = ""
+        return {"event": ev, "me": dict(me) if me else None,
+                "going": _going(conn, slug), "maybe": _going(conn, slug, "maybe")}
+
+
+@router.get("/api/e/{slug}/cal.ics")
+def ics(slug: str, t: str = ""):
+    with closing(party.db()) as conn:
+        ev = _event(conn, slug)
+        if not conn.execute("SELECT 1 FROM invites WHERE slug=? AND token=?", (slug, t)).fetchone():
+            raise HTTPException(404, "unknown invite link")
+    if not ev["at"]:
+        raise HTTPException(404, "no time set yet")
+    begin = datetime.strptime(ev["at"], "%Y-%m-%dT%H:%M")
+    start, end = (d.strftime("%Y%m%dT%H%M%S") for d in (begin, begin + timedelta(hours=3)))  # ponytail: fixed 3h block
+    base = (PUBLIC_URL or "").rstrip("/")
+    body = "\r\n".join([
+        "BEGIN:VCALENDAR", "VERSION:2.0", "PRODID:-//party//rsvp//EN", "BEGIN:VEVENT",
+        f"UID:{slug}@party.djiang.xyz", f"DTSTAMP:{time.strftime('%Y%m%dT%H%M%SZ', time.gmtime())}",
+        f"DTSTART;TZID=America/New_York:{start}", f"DTEND;TZID=America/New_York:{end}",
+        f"SUMMARY:{ev['title']}", f"LOCATION:{ev['address']}", f"URL:{base}/e/{slug}/{t}",
+        "END:VEVENT", "END:VCALENDAR", ""])
+    return Response(body, media_type="text/calendar",
+                    headers={"Content-Disposition": f'attachment; filename="{slug}.ics"'})
+
+
+@router.get("/uploads/{name}")
+def upload(name: str):
+    path = os.path.join(_uploads(), os.path.basename(name))
+    if not os.path.exists(path):
+        raise HTTPException(404)
+    return FileResponse(path)
 
 
 @router.post("/api/e/{slug}/rsvp")
@@ -112,12 +153,35 @@ async def admin_event(request: Request):
     slug = (b.get("slug") or "").strip()
     if not re.fullmatch(r"[a-z0-9-]{1,40}", slug) or not (b.get("title") or "").strip():
         raise HTTPException(400, "slug must be lowercase letters, digits, dashes; title required")
+    at = b.get("at", "")
+    if at and not re.fullmatch(r"\d{4}-\d\d-\d\dT\d\d:\d\d", at):
+        raise HTTPException(400, "at must be YYYY-MM-DDTHH:MM")
     with closing(party.db()) as conn, conn:
-        conn.execute("""INSERT INTO events (slug, title, starts, place, blurb) VALUES (?, ?, ?, ?, ?)
+        conn.execute("""INSERT INTO events (slug, title, starts, place, blurb, at, address) VALUES (?, ?, ?, ?, ?, ?, ?)
                         ON CONFLICT (slug) DO UPDATE SET title=excluded.title, starts=excluded.starts,
-                        place=excluded.place, blurb=excluded.blurb""",
-                     (slug, b["title"].strip(), b.get("starts", ""), b.get("place", ""), b.get("blurb", "")))
+                        place=excluded.place, blurb=excluded.blurb, at=excluded.at, address=excluded.address""",
+                     (slug, b["title"].strip(), b.get("starts", ""), b.get("place", ""), b.get("blurb", ""),
+                      at, b.get("address", "")))
     return {"ok": True}
+
+
+@router.post("/admin/e/{slug}/cover")
+async def admin_cover(slug: str, request: Request):
+    """Body {data: 'data:image/jpeg;base64,...'} from the admin page's file picker."""
+    party.require_admin(request)
+    m = re.fullmatch(r"data:image/(jpeg|png|webp|gif);base64,(.+)", (await request.json()).get("data", ""), re.S)
+    if not m:
+        raise HTTPException(400, "send a jpeg/png/webp/gif data URL")
+    raw = base64.b64decode(m.group(2))
+    if len(raw) > 8_000_000:
+        raise HTTPException(400, "image over 8MB")
+    name = f"{slug}-{secrets.token_hex(4)}.{m.group(1).replace('jpeg', 'jpg')}"
+    with open(os.path.join(_uploads(), name), "wb") as f:
+        f.write(raw)
+    with closing(party.db()) as conn, conn:
+        _event(conn, slug)
+        conn.execute("UPDATE events SET cover=? WHERE slug=?", (f"/uploads/{name}", slug))
+    return {"cover": f"/uploads/{name}"}
 
 
 @router.post("/admin/e/{slug}/invite")
@@ -138,6 +202,17 @@ async def admin_invite(slug: str, request: Request):
                                (slug, name.strip()[:60], phone, secrets.token_urlsafe(8), int(time.time())))
             added += cur.rowcount
     return {"added": added, "skipped": skipped}
+
+
+@router.get("/admin/contacts")
+def admin_contacts(request: Request):
+    """[[name, phone], ...] written by sync_contacts.sh; empty until the first sync."""
+    party.require_admin(request)
+    path = os.path.join(os.path.dirname(party.DB), "contacts.json")
+    if not os.path.exists(path):
+        return []
+    with open(path) as f:
+        return json.load(f)
 
 
 @router.get("/admin/e/{slug}")
