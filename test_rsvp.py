@@ -46,10 +46,12 @@ def test():
     # open link: new phone creates a row; existing phone updates it (no dupes)
     r = c.post("/api/e/poker/rsvp", json={"name": "Nina A", "phone": "917 555 0199", "status": "maybe"}).json()
     assert r["token"]
-    r2 = c.post("/api/e/poker/rsvp", json={"name": "Sam O", "phone": "9175550102", "status": "no"}).json()
+    # knowing an invited guest's phone must not let you change their RSVP or get their link
+    r2 = c.post("/api/e/poker/rsvp", json={"name": "Sam O", "phone": "9175550102", "status": "no"})
+    assert r2.status_code == 409 and "token" not in r2.json()
     rows = {x["phone"]: x for x in c.get("/admin/e/poker", headers=AK).json()["invites"]}
-    assert len(rows) == 3 and rows["+19175550102"]["status"] == "no" and rows["+19175550102"]["name"] == "Sam"
-    assert r2["token"] == rows["+19175550102"]["token"]
+    assert len(rows) == 3 and rows["+19175550102"]["status"] == "" and rows["+19175550102"]["name"] == "Sam"
+    c.post("/api/e/poker/rsvp", json={"t": rows["+19175550102"]["token"], "status": "no"})
     assert rows["+19175550199"]["source"] == "open"
     assert c.post("/api/e/poker/rsvp", json={"name": "", "phone": "9175550111", "status": "going"}).status_code == 400
     assert c.post("/api/e/poker/rsvp", json={"name": "X", "phone": "12", "status": "going"}).status_code == 400
@@ -73,7 +75,8 @@ def test():
     assert c.post("/admin/event", json={"slug": "poker", "title": "Poker night", "at": "12/4 8pm"}, headers=AK).status_code == 400
     c.post("/admin/event", json={"slug": "poker", "title": "Poker night", "at": "2026-12-04T20:00",
                                  "address": "1 Main St, Apt 2"}, headers=AK)
-    sam = c.post("/api/e/poker/rsvp", json={"name": "Sam", "phone": "9175550102", "status": "maybe"}).json()["token"]
+    sam = rows["+19175550102"]["token"]
+    c.post("/api/e/poker/rsvp", json={"t": sam, "status": "maybe"})
     pub = c.get("/api/e/poker").json()
     assert pub["event"]["address"] == "" and pub["event"]["at"] == "2026-12-04T20:00"
     assert sorted(pub["maybe"]) == ["Nina", "Sam"]
