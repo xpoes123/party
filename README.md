@@ -46,3 +46,16 @@ ssh root@87.99.136.82 "cd /opt/party && git pull && venv/bin/pip install -q -r r
 
 `party.db` lives on the VPS and is not in git — guests/edges/polls/songs persist
 across redeploys.
+
+## Events / RSVP
+
+Partiful-lite, no login; phone number is the guest identity. Spec:
+`docs/superpowers/specs/2026-11-24-event-rsvp-design.md`.
+
+- Host: `/admin/events?key=…` — create the event, paste `Name, phone` lines, see who's in.
+- Guests: personal link `/e/<slug>/<token>` (one tap) or open link `/e/<slug>` (name + phone).
+- Texts come from David's iPhone via a Shortcut that reads
+  `GET /admin/e/<slug>/blast?to=pending|all|going|yes-maybe&msg=Hey {name}: {link}`
+  (header `X-Admin-Key`) and sends each row's `text` to its `phone`.
+- `PARTY_PUBLIC_URL=https://party.djiang.xyz` in `.env` so links aren't 127.0.0.1.
+- Test: `python test_rsvp.py`

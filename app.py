@@ -98,6 +98,24 @@ def init():
                 points INTEGER NOT NULL DEFAULT 0,
                 wins INTEGER NOT NULL DEFAULT 0
             );
+            CREATE TABLE IF NOT EXISTS events (
+                slug TEXT PRIMARY KEY,
+                title TEXT NOT NULL,
+                starts TEXT NOT NULL DEFAULT '',
+                place TEXT NOT NULL DEFAULT '',
+                blurb TEXT NOT NULL DEFAULT ''
+            );
+            CREATE TABLE IF NOT EXISTS invites (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                slug TEXT NOT NULL REFERENCES events(slug) ON DELETE CASCADE,
+                name TEXT NOT NULL,
+                phone TEXT NOT NULL,
+                token TEXT NOT NULL UNIQUE,
+                status TEXT NOT NULL DEFAULT '',
+                source TEXT NOT NULL DEFAULT 'invite',
+                updated INTEGER NOT NULL DEFAULT 0,
+                UNIQUE (slug, phone)
+            );
             """
         )
         # migrate older DBs that predate the weight column
@@ -769,4 +787,7 @@ def scene(name: str):
     return FileResponse(path)
 
 
+from rsvp import router as rsvp_router  # noqa: E402  (needs db/require_admin above)
+
+app.include_router(rsvp_router)
 app.mount("/static", StaticFiles(directory=STATIC), name="static")
