@@ -23,6 +23,7 @@
   .av { width: 40px; height: 40px; border-radius: 50%; display: grid; place-items: center; font-weight: 600;
     background: var(--surface-2); border: 1px solid var(--line-2); color: var(--text); }
   .maybe .av { opacity: .55; }
+  .pending .av { opacity: .3; border-style: dashed; }
   input.ui-input { width: 100%; box-sizing: border-box; }
   section { margin-top: var(--space-5); }
 </style>
@@ -47,7 +48,7 @@ const faces = (names, cls) => names.map(n => `<div class="person ${cls}"><div cl
 async function load() {
   const r = await fetch(`/api/e/${slug}` + (token ? `?t=${encodeURIComponent(token)}` : ''));
   if (!r.ok) { app.innerHTML = '<p style="padding-top:var(--space-6)">This event link doesn\'t exist.</p>'; return; }
-  const { event: e, me, going, maybe } = await r.json();
+  const { event: e, me, going, maybe, invited } = await r.json();
   document.title = e.title;
   const where = e.address
     ? `<a href="https://maps.apple.com/?q=${encodeURIComponent(e.address)}">${esc(e.address)}</a>`
@@ -70,7 +71,9 @@ async function load() {
       <div id="msg" class="ui-muted">${me?.status ? DONE[me.status] : ''}</div>
     </div>
     ${going.length || maybe.length ? `<section><div class="ui-label">${going.length} going${maybe.length ? ` · ${maybe.length} maybe` : ''}</div>
-      <div class="people">${faces(going, '')}${faces(maybe, 'maybe')}</div></section>` : ''}`;
+      <div class="people">${faces(going, '')}${faces(maybe, 'maybe')}</div></section>` : ''}
+    ${invited.length ? `<section><div class="ui-label">Invited · ${invited.length} haven't replied</div>
+      <div class="people">${faces(invited, 'pending')}</div></section>` : ''}`;
 }
 
 async function send(status) {

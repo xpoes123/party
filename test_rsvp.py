@@ -89,12 +89,19 @@ def test():
     assert c.get("/api/e/poker").json()["event"]["cover"] == cover
     assert c.get(cover).content[:4] == b"\x89PNG"
 
-    # contacts picker source: admin only, empty before the first sync
+    # contacts: sync refreshes names but keeps tags/hidden; tags normalized
     assert c.get("/admin/contacts").status_code == 403
-    assert c.get("/admin/contacts", headers=AK).json() == []
-    with open(os.path.join(_tmp, "contacts.json"), "w") as f:
-        f.write('[["Test Person", "+19175550123"]]')
-    assert c.get("/admin/contacts", headers=AK).json() == [["Test Person", "+19175550123"]]
+    assert c.post("/admin/contacts/sync", json=[["Test Person", "(630) 555-0100"], ["", "6305550101"], ["Junk", "12"]],
+                  headers=AK).json() == {"synced": 1}
+    c.post("/admin/contact", json={"phone": "+16305550100", "tags": "Poker, trivia,poker"}, headers=AK)
+    c.post("/admin/contact", json={"phone": "+16305550100", "hidden": True}, headers=AK)
+    c.post("/admin/contacts/sync", json=[["Test P. Renamed", "6305550100"]], headers=AK)
+    assert c.get("/admin/contacts", headers=AK).json() == [
+        {"phone": "+16305550100", "name": "Test P. Renamed", "tags": "poker,trivia", "hidden": 1}]
+
+    # invited-but-unanswered list is public on the event page
+    c.post("/admin/e/poker/invite", json={"lines": "Geoff Wu, 6305550111"}, headers=AK)
+    assert c.get("/api/e/poker").json()["invited"] == ["Geoff"]
 
     # unknown event
     assert c.get("/api/e/nope").status_code == 404

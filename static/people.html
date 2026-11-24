@@ -1,0 +1,119 @@
+<!doctype html>
+<html lang="en" data-theme="davidj">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>People</title>
+<link rel="stylesheet" href="https://share.djiang.xyz/ui/ui.css">
+<style>
+  main { max-width: 760px; margin: 0 auto; padding: var(--space-4); }
+  .top { position: sticky; top: 0; z-index: 2; background: var(--bg); padding: var(--space-3) 0; border-bottom: 1px solid var(--line); }
+  input.ui-input, select.ui-input { box-sizing: border-box; }
+  .chips { display: flex; flex-wrap: wrap; gap: var(--space-1); }
+  .chip { cursor: pointer; background: none; font: inherit; }
+  .chip.on { color: var(--accent); border-color: var(--accent); }
+  .row { display: flex; align-items: center; gap: var(--space-3); padding: var(--space-2) 0; border-bottom: 1px solid var(--line); }
+  .who { flex: 1; min-width: 0; }
+  .who .ph { font-size: var(--text-xs); }
+  .tags { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 2px; }
+  .tags input { width: 110px; padding: 0 var(--space-2); font-size: var(--text-xs); }
+  .x { color: var(--muted); cursor: pointer; margin-left: 2px; }
+  .inv { min-width: 92px; }
+  .hidden-row { opacity: .45; }
+</style>
+</head>
+<body class="ui-page">
+<main>
+  <div class="top ui-stack" style="--gap:var(--space-2)">
+    <div class="ui-flex"><h1 class="ui-h1">People</h1><span class="ui-spacer"></span>
+      <span class="ui-muted">inviting to</span><select class="ui-input" id="ev" onchange="loadInvites()"></select></div>
+    <input class="ui-input" id="q" placeholder="Search names…" oninput="draw()">
+    <div class="chips" id="tagbar"></div>
+    <div class="ui-flex"><span class="ui-muted" id="count"></span><span class="ui-spacer"></span>
+      <label class="ui-muted" style="font-size:var(--text-sm)"><input type="checkbox" id="showHidden" onchange="draw()"> show hidden</label>
+      <button class="ui-btn ui-btn--sm" id="bulk" onclick="inviteAll()" hidden></button>
+      <a class="ui-btn ui-btn--ghost ui-btn--sm" href="/admin/events">Events →</a></div>
+  </div>
+  <div id="list"></div>
+</main>
+<script>
+const KEY = new URLSearchParams(location.search).get('key') || localStorage.getItem('partyKey') || prompt('Admin key');
+localStorage.setItem('partyKey', KEY);
+const H = { 'X-Admin-Key': KEY, 'Content-Type': 'application/json' };
+const $ = id => document.getElementById(id);
+const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+const api = (p, o = {}) => fetch(p, { headers: H, ...o }).then(async r => r.ok ? r.json() : Promise.reject((await r.json()).detail));
+const post = (p, b) => api(p, { method: 'POST', body: JSON.stringify(b) });
+let contacts = [], invites = {}, tagFilter = new Set(), editing = null;
+const STATUS = { going: ['Going', 'ui-pill--ok'], maybe: ['Maybe', 'ui-pill--warn'], no: ["Can't", 'ui-pill--bad'], '': ['Invited ✓', 'ui-pill--info'] };
+
+async function init() {
+  const evs = await api('/admin/events/list');
+  const want = new URLSearchParams(location.search).get('e');
+  $('ev').innerHTML = evs.map(e => `<option value="${e.slug}">${esc(e.title)}</option>`).join('');
+  if (want) $('ev').value = want;
+  contacts = await api('/admin/contacts');
+  await loadInvites();
+}
+async function loadInvites() {
+  const { invites: rows } = await api(`/admin/e/${$('ev').value}`);
+  invites = Object.fromEntries(rows.map(i => [i.phone, i]));
+  draw();
+}
+const tagsOf = c => c.tags ? c.tags.split(',') : [];
+
+function shown() {
+  const q = $('q').value.trim().toLowerCase();
+  return contacts.filter(c => ($('showHidden').checked || !c.hidden) && (!q || c.name.toLowerCase().includes(q))
+    && [...tagFilter].every(t => t === '(untagged)' ? !c.tags : tagsOf(c).includes(t)));
+}
+
+function draw() {
+  const all = [...new Set(contacts.flatMap(tagsOf))].sort();
+  $('tagbar').innerHTML = [...all, '(untagged)'].map(t => `<button class="ui-pill chip ${tagFilter.has(t) ? 'on' : ''}" data-t="${esc(t)}">${esc(t)}</button>`).join('');
+  $('tagbar').querySelectorAll('button').forEach(b => b.onclick = () => { const t = b.dataset.t; tagFilter.has(t) ? tagFilter.delete(t) : tagFilter.add(t); draw(); });
+  const list = shown(), nInv = Object.keys(invites).length;
+  $('count').textContent = `${list.length} shown · ${nInv} invited`;
+  const todo = list.filter(c => !invites[c.phone]);
+  $('bulk').hidden = !(tagFilter.size || $('q').value) || !todo.length;
+  $('bulk').textContent = `Invite all ${todo.length}`;
+  $('list').innerHTML = list.slice(0, 300).map((c, i) => {
+    const inv = invites[c.phone], [lab, cls] = inv ? STATUS[inv.status] : ['+ Invite', ''];
+    return `<div class="row ${c.hidden ? 'hidden-row' : ''}">
+      <div class="who"><div>${esc(c.name)}</div><div class="ph ui-muted ui-mono">${c.phone}</div>
+        <div class="tags">${tagsOf(c).map(t => `<span class="ui-pill">${esc(t)}<span class="x" data-rm="${i}" data-t="${esc(t)}">×</span></span>`).join('')}
+          ${editing === c.phone ? `<input class="ui-input" id="tagin" placeholder="tag, enter" data-i="${i}">` : `<span class="ui-pill chip" data-add="${i}">+ tag</span>`}</div></div>
+      <button class="ui-btn ui-btn--ghost ui-btn--sm" data-hide="${i}">${c.hidden ? 'unhide' : 'hide'}</button>
+      ${inv ? `<button class="ui-pill ${cls} chip inv" data-un="${i}">${lab}</button>` : `<button class="ui-btn ui-btn--primary ui-btn--sm inv" data-inv="${i}">${lab}</button>`}
+    </div>`;
+  }).join('') + (list.length > 300 ? `<p class="ui-muted">Showing 300 of ${list.length}. Search to narrow.</p>` : '')
+    + (contacts.length ? '' : '<p class="ui-muted">No contacts yet. Run sync_contacts.sh.</p>');
+  const at = sel => $('list').querySelectorAll(sel);
+  at('[data-inv]').forEach(b => b.onclick = () => invite([list[b.dataset.inv]]));
+  at('[data-un]').forEach(b => b.onclick = () => uninvite(list[b.dataset.un]));
+  at('[data-hide]').forEach(b => b.onclick = async () => { const c = list[b.dataset.hide]; c.hidden = c.hidden ? 0 : 1; await post('/admin/contact', { phone: c.phone, hidden: !!c.hidden }); draw(); });
+  at('[data-add]').forEach(b => b.onclick = () => { editing = list[b.dataset.add].phone; draw(); $('tagin').focus(); });
+  at('[data-rm]').forEach(b => b.onclick = () => { const c = list[b.dataset.rm]; setTags(c, tagsOf(c).filter(t => t !== b.dataset.t)); });
+  const tin = $('tagin');
+  if (tin) {
+    tin.onkeydown = e => { if (e.key === 'Enter' && tin.value.trim()) { editing = null; const c = list[tin.dataset.i]; setTags(c, [...tagsOf(c), tin.value.trim().toLowerCase()]); }
+                           if (e.key === 'Escape') { editing = null; draw(); } };
+    tin.onblur = () => setTimeout(() => { if (editing) { editing = null; draw(); } }, 150);
+  }
+}
+async function setTags(c, tags) { c.tags = [...new Set(tags)].join(','); await post('/admin/contact', { phone: c.phone, tags: c.tags }); draw(); }
+async function invite(cs) {
+  await post(`/admin/e/${$('ev').value}/invite`, { lines: cs.map(c => `${c.name.replace(/,/g, ' ')}, ${c.phone}`).join('\n') });
+  loadInvites();
+}
+async function uninvite(c) {
+  const inv = invites[c.phone];
+  if (inv.status && !confirm(`${c.name} already answered (${inv.status}). Remove them anyway?`)) return;
+  await api(`/admin/invite/${inv.id}`, { method: 'DELETE' });
+  loadInvites();
+}
+function inviteAll() { const todo = shown().filter(c => !invites[c.phone]); if (confirm(`Invite ${todo.length} people?`)) invite(todo); }
+init();
+</script>
+</body>
+</html>
