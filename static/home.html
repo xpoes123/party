@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="en" data-theme="davidj">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Events</title>
+<link rel="stylesheet" href="https://share.djiang.xyz/ui/ui.css">
+<style>
+  main { max-width: 480px; margin: 0 auto; padding: var(--space-6) var(--space-4); }
+  a.ui-card { display: block; color: inherit; text-decoration: none; margin-top: var(--space-2); }
+</style>
+</head>
+<body class="ui-page">
+<main>
+  <h1 class="ui-h1">Upcoming</h1>
+  <div id="list"><p class="ui-muted">Loading…</p></div>
+</main>
+<script>
+const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+fetch('/api/events').then(r => r.json()).then(evs => {
+  document.getElementById('list').innerHTML = evs.map(e => `<a class="ui-card" href="/e/${e.slug}">
+    <b>${esc(e.title)}</b><div class="ui-muted">${esc(e.starts)}${e.place ? ' · ' + esc(e.place) : ''}</div></a>`).join('')
+    || '<p class="ui-muted">Nothing scheduled.</p>';
+});
+</script>
+</body>
+</html>

@@ -11,9 +11,9 @@ set -x PARTY_ADMIN_KEY partytime
 uvicorn app:app --host 0.0.0.0 --port 7799
 ```
 
-- Guest app (phones): `/` — pick your name, connect, vote in polls, request songs, edit contacts
+- Guest app (phones): `/music` — pick your name, connect, vote in polls, request songs, edit contacts
 - Wall (monitor A): `/wall` — auto-rotating scenes: graph → blob battle → live poll → song queue
-- Welcome screen (monitor B): `/welcome` — big QR + live headcount + arrivals ticker.
+- `/` lists upcoming events. Welcome screen (monitor B): `/welcome` — big QR (to `/music`) + live headcount + arrivals ticker.
   QR encodes this page's origin by default; override with `/welcome?url=https://party.djiang.xyz`
 - Admin (control panel): `/admin?key=partytime` — guests/presence, connection weights, polls, song queue
 

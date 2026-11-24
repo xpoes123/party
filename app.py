@@ -45,7 +45,7 @@ async def no_cache_html(request: Request, call_next):
     pick up changes on reload. Static assets (/static) keep caching."""
     resp = await call_next(request)
     p = request.url.path
-    if p == "/" or p.startswith(("/wall", "/scene", "/welcome", "/admin")):
+    if p == "/" or p.startswith(("/music", "/e/", "/wall", "/scene", "/welcome", "/admin")):
         resp.headers["Cache-Control"] = "no-store"
     return resp
 
@@ -141,7 +141,7 @@ def require_admin(request: Request):
 
 
 # ---- pages ----
-@app.get("/")
+@app.get("/music")
 def index():
     return FileResponse(os.path.join(STATIC, "index.html"))
 
