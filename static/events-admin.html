@@ -1,0 +1,103 @@
+<!doctype html>
+<html lang="en" data-theme="davidj">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Events admin</title>
+<link rel="stylesheet" href="https://share.djiang.xyz/ui/ui.css">
+<style>
+  main { max-width: 900px; margin: 0 auto; padding: var(--space-4); }
+  input.ui-input, textarea.ui-input, select.ui-input { width: 100%; box-sizing: border-box; }
+  .two { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-2); }
+  .ui-table td { word-break: break-all; }
+  .counts .ui-stat { flex: 1; }
+</style>
+</head>
+<body class="ui-page">
+<main class="ui-stack">
+  <div class="ui-flex"><h1 class="ui-h1">Events</h1><span class="ui-spacer"></span>
+    <select class="ui-input" id="pick" style="width:auto" onchange="show(this.value)"></select></div>
+
+  <div class="ui-card ui-stack">
+    <div class="ui-label">Event</div>
+    <div class="two"><input class="ui-input" id="slug" placeholder="slug (e.g. poker-1204)"><input class="ui-input" id="title" placeholder="Title"></div>
+    <div class="two"><input class="ui-input" id="starts" placeholder="When (e.g. Thu 12/4, 8pm)"><input class="ui-input" id="place" placeholder="Where"></div>
+    <textarea class="ui-input" id="blurb" rows="3" placeholder="Blurb shown to guests"></textarea>
+    <div class="ui-flex"><button class="ui-btn ui-btn--primary" onclick="save()">Save event</button>
+      <span class="ui-muted" id="links"></span></div>
+  </div>
+
+  <div id="detail" hidden class="ui-stack">
+    <div class="ui-flex counts" id="counts"></div>
+
+    <div class="ui-card ui-stack">
+      <div class="ui-label">Add invitees: one <code>Name, phone</code> per line</div>
+      <textarea class="ui-input" id="lines" rows="4" placeholder="Leo Park, 917-555-0101"></textarea>
+      <div class="ui-flex"><button class="ui-btn" onclick="invite()">Add</button><span class="ui-muted" id="inv-msg"></span></div>
+    </div>
+
+    <div class="ui-card ui-stack">
+      <div class="ui-label">Text blast (preview of what the iOS Shortcut sends)</div>
+      <div class="two"><select class="ui-input" id="to" onchange="preview()">
+          <option value="pending">No reply yet</option><option value="all">Everyone invited</option>
+          <option value="going">Going</option><option value="yes-maybe">Going + maybe</option></select>
+        <span></span></div>
+      <textarea class="ui-input" id="msg" rows="2" oninput="preview()">Hey {name}! Come through: {link}</textarea>
+      <div class="ui-muted" id="blast-info"></div>
+      <div class="ui-muted" style="font-size:var(--text-xs)">Shortcut URL: <code id="blast-url"></code></div>
+    </div>
+
+    <table class="ui-table"><thead><tr><th>Name</th><th>Phone</th><th>Status</th><th>Link</th><th></th></tr></thead><tbody id="rows"></tbody></table>
+  </div>
+</main>
+<script>
+const KEY = new URLSearchParams(location.search).get('key') || localStorage.getItem('partyKey') || prompt('Admin key');
+localStorage.setItem('partyKey', KEY);
+const H = { 'X-Admin-Key': KEY, 'Content-Type': 'application/json' };
+const $ = id => document.getElementById(id);
+const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+const api = (p, o = {}) => fetch(p, { headers: H, ...o }).then(async r => r.ok ? r.json() : Promise.reject((await r.json()).detail));
+let cur = '';
+
+async function list() {
+  const evs = await api('/admin/events/list');
+  $('pick').innerHTML = '<option value="">+ new event</option>' + evs.map(e => `<option value="${e.slug}">${esc(e.title)}</option>`).join('');
+  if (!cur && evs[0]) cur = evs[0].slug;
+  $('pick').value = cur; show(cur);
+}
+async function show(slug) {
+  cur = slug; $('detail').hidden = !slug;
+  if (!slug) { ['slug', 'title', 'starts', 'place', 'blurb'].forEach(k => $(k).value = ''); $('links').textContent = ''; return; }
+  const { event: e, invites } = await api(`/admin/e/${slug}`);
+  ['slug', 'title', 'starts', 'place', 'blurb'].forEach(k => $(k).value = e[k]);
+  $('links').innerHTML = `Open link: <a href="/e/${slug}" target="_blank">${location.origin}/e/${slug}</a>`;
+  const n = s => invites.filter(i => i.status === s).length;
+  $('counts').innerHTML = [['Going', n('going')], ['Maybe', n('maybe')], ["Can't", n('no')], ['No reply', n('')]]
+    .map(([l, v]) => `<div class="ui-stat"><div class="ui-stat__label">${l}</div><div class="ui-stat__value">${v}</div></div>`).join('');
+  const pill = { going: 'ui-pill--ok', maybe: 'ui-pill--warn', no: 'ui-pill--bad' };
+  $('rows').innerHTML = invites.map(i => `<tr><td>${esc(i.name)}${i.source === 'open' ? ' <span class="ui-pill ui-pill--info">open link</span>' : ''}</td>
+    <td class="ui-mono">${esc(i.phone)}</td><td><span class="ui-pill ${pill[i.status] || ''}">${i.status || 'no reply'}</span></td>
+    <td><button class="ui-btn ui-btn--ghost ui-btn--sm" onclick="navigator.clipboard.writeText('${location.origin}/e/${slug}/${i.token}')">copy</button></td>
+    <td><button class="ui-btn ui-btn--danger ui-btn--sm" onclick="drop(${i.id})">remove</button></td></tr>`).join('');
+  preview();
+}
+async function save() {
+  const b = Object.fromEntries(['slug', 'title', 'starts', 'place', 'blurb'].map(k => [k, $(k).value]));
+  try { await api('/admin/event', { method: 'POST', body: JSON.stringify(b) }); cur = b.slug; list(); } catch (e) { alert(e); }
+}
+async function invite() {
+  const r = await api(`/admin/e/${cur}/invite`, { method: 'POST', body: JSON.stringify({ lines: $('lines').value }) });
+  $('inv-msg').textContent = `Added ${r.added}` + (r.skipped.length ? `. Couldn't read: ${r.skipped.join(' | ')}` : '');
+  $('lines').value = r.skipped.join('\n'); show(cur);
+}
+async function drop(id) { if (confirm('Remove this invite?')) { await api(`/admin/invite/${id}`, { method: 'DELETE' }); show(cur); } }
+async function preview() {
+  const q = new URLSearchParams({ to: $('to').value, msg: $('msg').value });
+  $('blast-url').textContent = `${location.origin}/admin/e/${cur}/blast?${q}`;
+  const rows = await api(`/admin/e/${cur}/blast?${q}`);
+  $('blast-info').textContent = rows.length ? `${rows.length} texts. First: "${rows[0].text}"` : 'Nobody matches.';
+}
+list();
+</script>
+</body>
+</html>

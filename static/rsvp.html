@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="en" data-theme="davidj">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>RSVP</title>
+<link rel="stylesheet" href="https://share.djiang.xyz/ui/ui.css">
+<style>
+  main { max-width: 480px; margin: 0 auto; padding: var(--space-6) var(--space-4); }
+  .title { font: 700 2rem/1.15 var(--font-sans); margin: var(--space-2) 0; }
+  .meta { color: var(--text-2); }
+  .blurb { white-space: pre-line; margin: var(--space-4) 0; }
+  .choices { display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--space-2); }
+  .choices .ui-btn { padding: var(--space-3) 0; font-size: var(--text-md); }
+  .choices .ui-btn.on { outline: 2px solid var(--accent); }
+  input.ui-input { width: 100%; box-sizing: border-box; }
+  [hidden] { display: none !important; }
+</style>
+</head>
+<body class="ui-page">
+<main id="app"><p class="ui-muted">Loading…</p></main>
+<script>
+const [, , slug, token] = location.pathname.split('/');
+const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+const LABEL = { going: "I'm in", maybe: 'Maybe', no: "Can't" };
+const DONE = { going: 'See you there 🎉', maybe: 'Got it, maybe. Change it any time.', no: "Sorry you'll miss it." };
+
+async function load() {
+  const r = await fetch(`/api/e/${slug}` + (token ? `?t=${encodeURIComponent(token)}` : ''));
+  if (!r.ok) { app.innerHTML = '<p>This event link doesn\'t exist.</p>'; return; }
+  const { event: e, me, going } = await r.json();
+  document.title = e.title;
+  const open = !me;
+  app.innerHTML = `
+    <div class="ui-label">You're invited${me ? ', ' + esc(me.name.split(' ')[0]) : ''}</div>
+    <h1 class="title">${esc(e.title)}</h1>
+    <div class="meta">${esc(e.starts)}${e.place ? ' · ' + esc(e.place) : ''}</div>
+    ${e.blurb ? `<p class="blurb">${esc(e.blurb)}</p>` : ''}
+    <div class="ui-card ui-stack">
+      ${open ? `<input class="ui-input" id="name" placeholder="Your name" autocomplete="name">
+        <input class="ui-input" id="phone" placeholder="Phone number" type="tel" autocomplete="tel">` : ''}
+      <div class="choices">${Object.entries(LABEL).map(([k, l]) =>
+        `<button class="ui-btn ${k === 'going' ? 'ui-btn--primary' : ''} ${me?.status === k ? 'on' : ''}" onclick="send('${k}')">${l}</button>`).join('')}</div>
+      <div id="msg" class="ui-muted">${me?.status ? DONE[me.status] : ''}</div>
+    </div>
+    ${going.length ? `<p class="ui-muted" style="margin-top:var(--space-4)">${going.length} going: ${going.map(esc).join(', ')}</p>` : ''}`;
+}
+
+async function send(status) {
+  const body = token ? { t: token, status } : { status, name: document.getElementById('name').value, phone: document.getElementById('phone').value };
+  const r = await fetch(`/api/e/${slug}/rsvp`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+  const msg = document.getElementById('msg');
+  if (!r.ok) { msg.textContent = (await r.json()).detail || 'Something went wrong'; return; }
+  const { token: t } = await r.json();
+  if (!token) { location.replace(`/e/${slug}/${t}`); return; }  // personal link from now on
+  load();
+}
+const app = document.getElementById('app');
+load();
+</script>
+</body>
+</html>
