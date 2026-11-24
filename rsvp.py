@@ -1,7 +1,6 @@
 """Event RSVPs (Partiful-lite). Phone number is the guest identity; no login.
 See docs/superpowers/specs/2026-11-24-event-rsvp-design.md."""
 import base64
-import json
 import os
 import re
 import secrets
@@ -72,8 +71,8 @@ def public(slug: str, t: str = ""):
         me = conn.execute("SELECT name, status FROM invites WHERE slug=? AND token=?", (slug, t)).fetchone() if t else None
         if not me:  # the open link is shareable; the address is for invited people only
             ev["address"] = ""
-        return {"event": ev, "me": dict(me) if me else None,
-                "going": _going(conn, slug), "maybe": _going(conn, slug, "maybe")}
+        return {"event": ev, "me": dict(me) if me else None, "going": _going(conn, slug),
+                "maybe": _going(conn, slug, "maybe"), "invited": _going(conn, slug, "")}
 
 
 @router.get("/api/e/{slug}/cal.ics")
@@ -137,6 +136,11 @@ async def rsvp(slug: str, request: Request):
 @router.get("/admin/events")
 def admin_page():
     return FileResponse(os.path.join(party.STATIC, "events-admin.html"), headers={"Cache-Control": "no-store"})
+
+
+@router.get("/admin/people")
+def people_page():
+    return FileResponse(os.path.join(party.STATIC, "people.html"), headers={"Cache-Control": "no-store"})
 
 
 @router.get("/admin/events/list")
@@ -204,15 +208,39 @@ async def admin_invite(slug: str, request: Request):
     return {"added": added, "skipped": skipped}
 
 
+@router.post("/admin/contacts/sync")
+async def admin_contacts_sync(request: Request):
+    """[[name, raw phone], ...] from sync_contacts.sh. Refreshes names; keeps tags and hidden."""
+    party.require_admin(request)
+    rows = {}
+    for name, raw in await request.json():
+        if (phone := norm_phone(raw)) and (name or "").strip():
+            rows.setdefault(phone, name.strip()[:60])
+    with closing(party.db()) as conn, conn:
+        conn.executemany("INSERT INTO contacts (phone, name) VALUES (?, ?) ON CONFLICT (phone) DO UPDATE SET name=excluded.name",
+                         rows.items())
+    return {"synced": len(rows)}
+
+
 @router.get("/admin/contacts")
 def admin_contacts(request: Request):
-    """[[name, phone], ...] written by sync_contacts.sh; empty until the first sync."""
     party.require_admin(request)
-    path = os.path.join(os.path.dirname(party.DB), "contacts.json")
-    if not os.path.exists(path):
-        return []
-    with open(path) as f:
-        return json.load(f)
+    with closing(party.db()) as conn:
+        return [dict(r) for r in conn.execute("SELECT * FROM contacts ORDER BY name COLLATE NOCASE")]
+
+
+@router.post("/admin/contact")
+async def admin_contact(request: Request):
+    """{phone, tags?: 'poker,trivia', hidden?: bool}"""
+    party.require_admin(request)
+    b = await request.json()
+    with closing(party.db()) as conn, conn:
+        if "tags" in b:
+            tags = ",".join(dict.fromkeys(t.strip().lower() for t in b["tags"].split(",") if t.strip()))
+            conn.execute("UPDATE contacts SET tags=? WHERE phone=?", (tags, b["phone"]))
+        if "hidden" in b:
+            conn.execute("UPDATE contacts SET hidden=? WHERE phone=?", (int(bool(b["hidden"])), b["phone"]))
+    return {"ok": True}
 
 
 @router.get("/admin/e/{slug}")

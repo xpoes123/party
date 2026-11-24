@@ -1,9 +1,12 @@
 #!/usr/bin/env bash
-# Copy phone contacts (name + number only) from the homelab's iPhone-contacts mirror to the VPS,
-# for the /admin/events picker. Run from the desktop whenever contacts change.
+# Push phone contacts (name + number only) from the MacBook's Contacts to the party app's
+# /admin/people dashboard. Run from the desktop while the Mac is awake. Tags/hidden survive re-syncs.
 set -euo pipefail
-ssh -o BatchMode=yes root@100.67.232.59 'cd /opt/homelab/omi && /opt/omi/venv/bin/python -c "
-import json, texts
-rows = {(\"+1\" + h): n for h, n in texts.contacts().items() if h.isdigit() and len(h) == 10}
-print(json.dumps(sorted(([n, p] for p, n in rows.items()), key=lambda r: r[0].lower())))
-"' | ssh root@87.99.136.82 'cat > /opt/party/contacts.json && chmod 600 /opt/party/contacts.json && python3 -c "import json;print(len(json.load(open(\"/opt/party/contacts.json\"))), \"contacts synced\")"'
+MAC=david@100.111.209.2
+KEY=$(ssh root@87.99.136.82 "grep ^PARTY_ADMIN_KEY /opt/party/.env | cut -d= -f2-")
+ssh -o BatchMode=yes "$MAC" 'for db in ~/Library/Application\ Support/AddressBook/Sources/*/AddressBook-v22.abcddb; do
+  sqlite3 -readonly -separator "	" "$db" "SELECT trim(coalesce(r.ZFIRSTNAME,\"\")||\" \"||coalesce(r.ZLASTNAME,\"\")), p.ZFULLNUMBER
+    FROM ZABCDRECORD r JOIN ZABCDPHONENUMBER p ON p.ZOWNER=r.Z_PK WHERE coalesce(r.ZFIRSTNAME, r.ZLASTNAME) IS NOT NULL"; done' |
+  python3 -c 'import sys, json; print(json.dumps([l.rstrip("\n").split("\t", 1) for l in sys.stdin if "\t" in l]))' |
+  curl -sf -H "X-Admin-Key: $KEY" -H 'Content-Type: application/json' --data-binary @- https://party.djiang.xyz/admin/contacts/sync
+echo

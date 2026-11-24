@@ -116,6 +116,12 @@ def init():
                 updated INTEGER NOT NULL DEFAULT 0,
                 UNIQUE (slug, phone)
             );
+            CREATE TABLE IF NOT EXISTS contacts (
+                phone TEXT PRIMARY KEY,
+                name TEXT NOT NULL,
+                tags TEXT NOT NULL DEFAULT '',
+                hidden INTEGER NOT NULL DEFAULT 0
+            );
             """
         )
         # migrate older DBs that predate the weight column

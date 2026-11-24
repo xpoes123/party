@@ -52,7 +52,8 @@ across redeploys.
 Partiful-lite, no login; phone number is the guest identity. Spec:
 `docs/superpowers/specs/2026-11-24-event-rsvp-design.md`.
 
-- Host: `/admin/events?key=…` — create the event, paste `Name, phone` lines, see who's in.
+- Host: `/admin/events?key=…` — create the event, see who's in. `/admin/people` — tag contacts, one-tap invite.
+- `./sync_contacts.sh` (desktop, Mac awake) pushes Mac Contacts names+numbers to the people dashboard.
 - Guests: personal link `/e/<slug>/<token>` (one tap) or open link `/e/<slug>` (name + phone).
 - Texts come from David's iPhone via a Shortcut that reads
   `GET /admin/e/<slug>/blast?to=pending|all|going|yes-maybe&msg=Hey {name}: {link}`
