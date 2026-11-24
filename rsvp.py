@@ -123,12 +123,13 @@ async def rsvp(slug: str, request: Request):
         phone = norm_phone(body.get("phone", ""))
         if not name or not phone:
             raise HTTPException(400, "need a name and a valid phone number")
-        # existing phone keeps the host's name for it and its token
-        conn.execute("""INSERT INTO invites (slug, name, phone, token, status, source, updated)
-                        VALUES (?, ?, ?, ?, ?, 'open', ?)
-                        ON CONFLICT (slug, phone) DO UPDATE SET status=excluded.status, updated=excluded.updated""",
-                     (slug, name, phone, secrets.token_urlsafe(8), status, now))
-        token = conn.execute("SELECT token FROM invites WHERE slug=? AND phone=?", (slug, phone)).fetchone()["token"]
+        # A phone already on the list must use its personal link: otherwise anyone who knows a
+        # guest's number could change their RSVP and read their link (and the address).
+        if conn.execute("SELECT 1 FROM invites WHERE slug=? AND phone=?", (slug, phone)).fetchone():
+            raise HTTPException(409, "You're already on the list. Use the link that was texted to you.")
+        token = secrets.token_urlsafe(8)
+        conn.execute("INSERT INTO invites (slug, name, phone, token, status, source, updated) VALUES (?, ?, ?, ?, ?, 'open', ?)",
+                     (slug, name, phone, token, status, now))
         return {"ok": True, "token": token}
 
 
