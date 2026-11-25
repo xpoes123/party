@@ -24,6 +24,7 @@
     <div class="two"><input class="ui-input" id="at" type="datetime-local"><input class="ui-input" id="place" placeholder="Short place name (shown to everyone)"></div>
     <input class="ui-input" id="address" placeholder="Full address (shown only to invited people)">
     <input class="ui-input" id="host" placeholder="Hosted by (e.g. David)">
+    <select class="ui-input" id="theme"><option value="">Theme: card table (poker)</option><option value="noir">Theme: noir (murder mystery)</option></select>
     <div class="ui-flex"><img id="cover-img" alt="" style="height:64px;border-radius:var(--radius-sm);display:none">
       <label class="ui-btn ui-btn--sm">Cover photo… <input type="file" accept="image/*" hidden onchange="cover(this.files[0])"></label>
       <span class="ui-muted" id="cover-msg"></span></div>
@@ -74,9 +75,9 @@ async function list() {
 }
 async function show(slug) {
   cur = slug; $('detail').hidden = !slug;
-  if (!slug) { ['slug', 'title', 'at', 'place', 'address', 'host', 'blurb'].forEach(k => $(k).value = ''); $('links').textContent = ''; return; }
+  if (!slug) { ['slug', 'title', 'at', 'place', 'address', 'host', 'theme', 'blurb'].forEach(k => $(k).value = ''); $('links').textContent = ''; return; }
   const { event: e, invites } = await api(`/admin/e/${slug}`);
-  ['slug', 'title', 'at', 'place', 'address', 'host', 'blurb'].forEach(k => $(k).value = e[k] ?? '');
+  ['slug', 'title', 'at', 'place', 'address', 'host', 'theme', 'blurb'].forEach(k => $(k).value = e[k] ?? '');
   $('cover-img').src = e.cover; $('cover-img').style.display = e.cover ? '' : 'none';
   $('links').innerHTML = `Open link: <a href="/e/${slug}" target="_blank">${location.origin}/e/${slug}</a>`;
   $('people-link').href = `/admin/people?e=${slug}`;
@@ -93,7 +94,7 @@ async function show(slug) {
   preview();
 }
 async function save() {
-  const b = Object.fromEntries(['slug', 'title', 'at', 'place', 'address', 'host', 'blurb'].map(k => [k, $(k).value]));
+  const b = Object.fromEntries(['slug', 'title', 'at', 'place', 'address', 'host', 'theme', 'blurb'].map(k => [k, $(k).value]));
   try { await api('/admin/event', { method: 'POST', body: JSON.stringify(b) }); cur = b.slug; list(); } catch (e) { alert(e); }
 }
 async function invite() {

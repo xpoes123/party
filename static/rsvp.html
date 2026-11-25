@@ -7,13 +7,12 @@
 <title>RSVP</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=IM+Fell+English:ital@0;1&family=IM+Fell+English+SC&family=Archivo+Narrow:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
   /* Guests see this page, so it owns its look: the invite is a playing card lying on felt. */
   :root {
     --felt: #16301f; --felt-2: #234a32; --card: #f4eddd; --card-2: #ebe1cb; --ink: #1c1814; --ink-2: #4a4137;
     --mute: #8a7c68; --rule: rgba(28, 24, 20, .14); --red: #b01c22;
-    --r: 22px; --pad: 24px; color-scheme: light;
+    --r: 22px; --pad: 24px; color-scheme: light; --glow: rgba(255, 214, 140, .22); --field: #fffaf0;
     --fell: 'IM Fell English', Georgia, serif; --sc: 'IM Fell English SC', Georgia, serif; --sans: 'Archivo Narrow', 'Arial Narrow', sans-serif;
   }
   * { box-sizing: border-box; }
@@ -22,7 +21,7 @@
     margin: 0; min-height: 100vh; color: var(--ink); -webkit-font-smoothing: antialiased;
     font: 400 17px/1.5 var(--sans);
     background:
-      radial-gradient(70% 40% at 50% 0%, rgba(255, 214, 140, .22), transparent 70%),
+      radial-gradient(70% 40% at 50% 0%, var(--glow), transparent 70%),
       radial-gradient(120% 90% at 50% 40%, var(--felt-2), var(--felt) 70%, #0c1c12);
     background-attachment: fixed;
   }
@@ -65,7 +64,7 @@
   .ask { margin-top: 30px; text-align: center; }
   .ask h2 { margin: 0; font: italic 400 26px/1 var(--fell); }
   .fields { display: grid; gap: 10px; margin: 18px 0 4px; text-align: left; }
-  .fields input { width: 100%; padding: 13px 14px; border-radius: 10px; border: 1px solid rgba(28, 24, 20, .25); background: #fffaf0;
+  .fields input { width: 100%; padding: 13px 14px; border-radius: 10px; border: 1px solid var(--rule); background: var(--field);
     color: var(--ink); font: 400 17px var(--sans); outline: none; }
   .fields input:focus { border-color: var(--red); box-shadow: 0 0 0 3px rgba(176, 28, 34, .15); }
 
@@ -112,6 +111,34 @@
   .person.pending { color: var(--mute); }
   .host { margin-top: 36px; text-align: center; font: italic 400 18px/1.3 var(--fell); color: var(--ink-2); }
 
+  /* noir: a case file in a dark room. Black card, blood red, typewriter copy. */
+  [data-theme="noir"] {
+    --felt: #070606; --felt-2: #1d0708; --glow: rgba(160, 16, 24, .28); --card: #100d0d; --card-2: #1c1716; --field: #0a0808;
+    --ink: #ece4d6; --ink-2: #b9ae9f; --mute: #7d726a; --rule: rgba(236, 228, 214, .13); --red: #c3141f; color-scheme: dark;
+    --fell: 'Special Elite', 'Courier New', monospace; --sc: 'Gloock', Georgia, serif; --sans: 'Special Elite', 'Courier New', monospace;
+  }
+  [data-theme="noir"] body::before { opacity: .22; }
+  [data-theme="noir"] .card { background-image: radial-gradient(120% 70% at 50% 0%, #1a1312, transparent 60%);
+    box-shadow: 0 0 0 1px rgba(195, 20, 31, .35), 0 30px 80px -20px #000, 0 0 120px -40px rgba(195, 20, 31, .5); }
+  [data-theme="noir"] .card::before { border-color: rgba(195, 20, 31, .28); }
+  [data-theme="noir"] h1 { color: var(--red); font-style: italic; text-shadow: 0 2px 0 #4a0508; }
+  [data-theme="noir"] .idx { font: 400 13px/1.1 var(--sans); letter-spacing: .12em; top: 28px; left: 26px; }
+  [data-theme="noir"] .idx.br { top: auto; left: auto; bottom: 28px; right: 26px; }
+  [data-theme="noir"] .idx small { display: none; }
+  [data-theme="noir"] .orn b, [data-theme="noir"] .orn b:nth-child(even) { color: var(--red); }
+  [data-theme="noir"] .blurb, [data-theme="noir"] .msg { font-style: normal; font-size: 17px; }
+  [data-theme="noir"] .fact .v { font-size: 18px; }
+  [data-theme="noir"] .head h2, [data-theme="noir"] .ask h2, [data-theme="noir"] .plus h2 { font: italic 400 26px/1 'Gloock', serif; }
+  [data-theme="noir"] .host { font-size: 15px; }
+  [data-theme="noir"] .going { --c: #a3101a; --edge: #ece4d6; --rim: #4a0508; }
+  [data-theme="noir"] .maybe { --c: #4a4542; --edge: #ece4d6; --rim: #1f1c1a; }
+  [data-theme="noir"] .no    { --c: #0a0808; --edge: #6b5f58; --rim: #000; }
+  [data-theme="noir"] .av { box-shadow: 0 0 0 2px var(--card), 0 0 0 3px var(--rule); }
+  [data-theme="noir"] .person.pending .av { border-color: rgba(236, 228, 214, .25); }
+  [data-theme="noir"] .stamp { display: block; }
+  .stamp { display: none; position: absolute; top: 22px; right: 22px; transform: rotate(8deg); padding: 4px 10px; border: 2px solid var(--red);
+    border-radius: 4px; color: var(--red); font: 400 13px/1 var(--sans); letter-spacing: .2em; opacity: .85; }
+
   .rise { animation: rise .8s cubic-bezier(.2, .8, .2, 1) both; animation-delay: calc(var(--i, 0) * 70ms); }
   @keyframes rise { from { opacity: 0; transform: translateY(14px); } }
   @keyframes deal { from { opacity: 0; transform: translateY(40px) rotate(-3deg) scale(.97); } }
@@ -127,7 +154,23 @@
 const [, , slug, token] = location.pathname.split('/');
 const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 const CHIPS = { going: ["I'm in", '✓'], maybe: ['Maybe', '?'], no: ["Can't", '✕'] };
-const DONE = { going: "You're in. See you at the table.", maybe: 'Marked maybe. Change it any time.', no: "Sorry you'll miss it." };
+// Per-event look and copy (events.theme). '' = the card-table theme.
+const THEMES = {
+  '': { fonts: 'IM+Fell+English:ital@0;1&family=IM+Fell+English+SC&family=Archivo+Narrow:wght@400;500;600;700', invited: n => `${n}, you're invited`,
+    orn: ['♠', '♥', '♣', '♦'], table: 'At the table', pending: 'Invited', idx: d => [d ? d.getDate() : 'A', '♦'],
+    done: { going: "You're in. See you at the table.", maybe: 'Marked maybe. Change it any time.', no: "Sorry you'll miss it." } },
+  noir: { fonts: 'Gloock&family=Special+Elite', invited: n => `${n}, you're a suspect`,
+    orn: ['†', '†', '†'], table: 'The suspects', pending: 'Still at large',
+    idx: d => [d ? `CASE NO. ${d.getMonth() + 1}${String(d.getDate()).padStart(2, '0')}` : 'CASE FILE', ''],
+    done: { going: "You're on the list. Trust no one.", maybe: "Noted. We'll be watching.", no: 'Suspicious. Very suspicious.' } },
+};
+let T = THEMES[''];
+function useTheme(name) {
+  T = THEMES[name] || THEMES[''];
+  document.documentElement.dataset.theme = name || 'card';
+  if (!document.getElementById('tf')) document.head.insertAdjacentHTML('beforeend',
+    `<link id="tf" rel="stylesheet" href="https://fonts.googleapis.com/css2?family=${T.fonts}&display=swap">`);
+}
 const AV = ['#b01c22', '#24527e', '#2f5b3f', '#6a4a86', '#9a6a1e', '#3d4f63', '#8a3a5a', '#24201c'];
 const app = document.getElementById('app');
 let ME = null;
@@ -161,19 +204,21 @@ async function load() {
   if (!r.ok) { app.innerHTML = '<div class="card"><h1>No such event</h1></div>'; return; }
   const { event: e, me, going, maybe, invited } = await r.json();
   ME = me;
+  useTheme(e.theme);
   const ask = !me || me.needs_info;  // open link, or a name-only invite that fills in its own number
   document.title = e.title;
-  const rank = e.at ? new Date(e.at).getDate() : 'A';
+  const [rank, suit] = T.idx(e.at ? new Date(e.at) : null);
   const where = e.address
     ? `<div class="v"><a href="https://maps.apple.com/?q=${encodeURIComponent(e.address)}">${esc(e.address.split(',')[0])}</a></div><small>${esc(e.address.split(',').slice(1).join(',').trim())}</small>`
     : `<div class="v">${esc(e.place || 'TBA')}</div><small>Address shown after you RSVP</small>`;
   let i = 0; const rise = () => `rise" style="--i:${i++}`;
   app.innerHTML = `<div class="card">
-    <div class="idx">${rank}<small>♦</small></div><div class="idx br">${rank}<small>♦</small></div>
+    <div class="idx">${rank}<small>${suit}</small></div><div class="idx br">${rank}<small>${suit}</small></div>
+    <div class="stamp">CONFIDENTIAL</div>
     ${e.cover ? `<img class="cover ${rise()}" src="${esc(e.cover)}" alt="">` : ''}
-    <div class="eyebrow ${rise()}">${me ? `${esc(me.name.split(' ')[0])}, you're invited` : "You're invited"}</div>
+    <div class="eyebrow ${rise()}">${me ? esc(T.invited(me.name.split(' ')[0])) : "You're invited"}</div>
     <h1 class="${rise()}">${esc(e.title)}</h1>
-    <div class="orn ${rise()}"><b>♠</b><b>♥</b><b>♣</b><b>♦</b></div>
+    <div class="orn ${rise()}">${T.orn.map(o => `<b>${o}</b>`).join('')}</div>
     ${e.blurb ? `<p class="blurb ${rise()}">${esc(e.blurb)}</p>` : ''}
     <div class="facts ${rise()}">
       ${whenFact(e, me)}
@@ -185,7 +230,7 @@ async function load() {
         <input id="phone" placeholder="Phone number" type="tel" autocomplete="tel"></div>` : ''}
       <div class="chips ${me?.status ? 'picked' : ''}">${Object.entries(CHIPS).map(([k, [l, g]]) =>
         `<button class="chip ${k} ${me?.status === k ? 'on' : ''}" onclick="send('${k}')"><i>${g}</i>${l}</button>`).join('')}</div>
-      <div id="msg" class="msg">${me?.status ? DONE[me.status] : ''}</div>
+      <div id="msg" class="msg">${me?.status ? T.done[me.status] : ''}</div>
     </div>
     ${me && (me.plus_left || me.guests.length) ? `<div class="plus ${rise()}">
       ${me.guests.map(g => `<div class="v">+1 · ${esc(g)} <small>on the list</small></div>`).join('')}
@@ -193,10 +238,10 @@ async function load() {
         <input id="pphone" placeholder="Their phone number" type="tel"></div>
         <button class="pbtn" onclick="addPlus()">Add my +1</button>` : ''}
       <div id="pmsg" class="msg"></div></div>` : ''}
-    ${going.length || maybe.length ? `<section class="${rise()}"><div class="head"><h2>At the table</h2>
+    ${going.length || maybe.length ? `<section class="${rise()}"><div class="head"><h2>${T.table}</h2>
       <span>${going.length} in${maybe.length ? ` · ${maybe.length} maybe` : ''}</span></div>
       <div class="people">${faces(going, '')}${faces(maybe, 'maybe')}</div></section>` : ''}
-    ${invited.length ? `<section class="${rise()}"><div class="head"><h2>Invited</h2><span>${invited.length} yet to reply</span></div>
+    ${invited.length ? `<section class="${rise()}"><div class="head"><h2>${T.pending}</h2><span>${invited.length} yet to reply</span></div>
       <div class="people">${faces(invited, 'pending')}</div></section>` : ''}
     ${e.host ? `<div class="host ${rise()}">Hosted by ${esc(e.host)}</div>` : ''}
   </div>`;
