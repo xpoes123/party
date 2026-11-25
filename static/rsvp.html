@@ -98,6 +98,15 @@
   .plus .msg a { color: var(--ink); word-break: break-all; font: 500 14px/1.4 var(--sans); }
   .pbtn { margin-top: 8px; padding: 12px 22px; border: 0; border-radius: 999px; background: var(--ink); color: var(--card); cursor: pointer;
     font: 600 14px/1 var(--sans); letter-spacing: .12em; text-transform: uppercase; }
+  .eta { display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: 6px; margin-top: 16px; }
+  .eta button { padding: 7px 12px; border-radius: 999px; border: 1px solid var(--rule); background: transparent; color: var(--ink-2);
+    font: 500 14px/1 var(--sans); cursor: pointer; }
+  .eta button.on { background: var(--ink); color: var(--card); border-color: var(--ink); }
+  .eta span { width: 100%; color: var(--ink); font: italic 400 18px/1.3 var(--fell); }
+  #etaPick { display: flex; gap: 6px; justify-content: center; width: 100%; margin-top: 6px; }
+  #etaPick[hidden] { display: none; }
+  #etaPick input { padding: 6px 10px; border-radius: 10px; border: 1px solid var(--rule); background: var(--field); color: var(--ink); font: 500 16px var(--sans); }
+  .person .late { margin-top: -3px; color: var(--red); font: 600 11px/1 var(--sans); }
   section { margin-top: 34px; }
   .head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; padding-bottom: 10px; border-bottom: 1px solid var(--rule); }
   .head h2 { margin: 0; font: italic 400 24px/1 var(--fell); }
@@ -193,9 +202,11 @@ const AV = ['#b01c22', '#24527e', '#2f5b3f', '#6a4a86', '#9a6a1e', '#3d4f63', '#
 const app = document.getElementById('app');
 let ME = null;
 
+let LATE = {};  // first name -> 'HH:MM'
+
 const faces = (names, cls) => names.map(n => {
   const h = [...n].reduce((a, c) => a * 31 + c.charCodeAt(0) | 0, 0);
-  return `<div class="person ${cls}"><div class="av" style="--av:${AV[Math.abs(h) % AV.length]}">${esc(n[0] || '?')}</div><span>${esc(n.split(' ')[0])}</span></div>`;
+  return `<div class="person ${cls}"><div class="av" style="--av:${AV[Math.abs(h) % AV.length]}">${esc(n[0] || '?')}</div><span>${esc(n.split(' ')[0])}</span>${cls === '' && LATE[n] ? `<small class="late">~${clock(LATE[n])}</small>` : ''}</div>`;
 }).join('');
 
 // Google takes wall-clock times plus ctz; Apple Calendar opens the .ics.
@@ -220,7 +231,8 @@ function whenFact(e, me) {
 async function load() {
   const r = await fetch(`/api/e/${slug}` + (token ? `?t=${encodeURIComponent(token)}` : ''));
   if (!r.ok) { app.innerHTML = '<div class="card"><h1>No such event</h1></div>'; return; }
-  const { event: e, me, going, maybe, invited } = await r.json();
+  const { event: e, me, going, maybe, invited, late = {} } = await r.json();
+  LATE = late;
   ME = me;
   useTheme(e.theme);
   const ask = !me || me.needs_info;  // open link (number required), or invited without a number (optional)
@@ -249,6 +261,10 @@ async function load() {
       <div class="chips ${me?.status ? 'picked' : ''}">${Object.entries(CHIPS).map(([k, [l, g]]) =>
         `<button class="chip ${k} ${me?.status === k ? 'on' : ''}" onclick="send('${k}')">${T.button(k, l, g)}</button>`).join('')}</div>
       <div id="msg" class="msg">${me?.status ? T.done[me.status] : ''}</div>
+      ${me?.status === 'going' ? `<div class="eta">${me.eta
+        ? `<span>Arriving around ${clock(me.eta)}</span><button onclick="askEta()">Change time</button><button onclick="setEta('')">I'll be on time</button>`
+        : `<button onclick="askEta()">Arriving late?</button>`}
+        <div id="etaPick" hidden><input type="time" id="etaIn" value="${esc(me.eta || later(e.at))}"><button class="on" onclick="setEta(document.getElementById('etaIn').value)">Save</button></div></div>` : ''}
     </div>
     ${me && (me.plus_left || me.guests.length) ? `<div class="plus ${rise()}">
       ${me.guests.map(g => `<div class="v">+1 · ${esc(g)} <small>on the list</small></div>`).join('')}
@@ -273,6 +289,14 @@ async function send(status) {
   if (!r.ok) { msg.className = 'msg err'; msg.textContent = (await r.json()).detail || 'Something went wrong'; return; }
   const { token: t } = await r.json();
   if (!token) { location.replace(`/e/${slug}/${t}`); return; }  // personal link from now on
+  app.classList.add('settled');
+  load();
+}
+const clock = hm => new Date(`2000-01-01T${hm}`).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+const later = at => at ? new Date(new Date(at).getTime() + 3600e3).toTimeString().slice(0, 5) : '20:00';  // default: an hour in
+function askEta() { document.getElementById('etaPick').hidden = false; document.getElementById('etaIn').focus(); }
+async function setEta(v) {
+  await fetch(`/api/e/${slug}/eta`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ t: token, eta: v }) });
   app.classList.add('settled');
   load();
 }

@@ -140,6 +140,8 @@ def init():
             conn.execute("ALTER TABLE invites ADD COLUMN via INTEGER")
         if "mac" not in [r["name"] for r in conn.execute("PRAGMA table_info(contacts)")]:  # 0 = not yet on the Mac/iPhone
             conn.execute("ALTER TABLE contacts ADD COLUMN mac INTEGER NOT NULL DEFAULT 1")
+        if "eta" not in cols:  # '' on time, else expected arrival 'HH:MM' (24h)
+            conn.execute("ALTER TABLE invites ADD COLUMN eta TEXT NOT NULL DEFAULT ''")
         if "texted" not in cols:  # 1 once the "you're confirmed" text went out
             conn.execute("ALTER TABLE invites ADD COLUMN texted INTEGER NOT NULL DEFAULT 0")
 

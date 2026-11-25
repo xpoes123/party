@@ -108,12 +108,14 @@ def public(slug: str, t: str = ""):
         me = None
         if row:
             guests = [r["name"] for r in conn.execute("SELECT name FROM invites WHERE via=? ORDER BY id", (row["id"],))]
-            me = {"name": row["name"], "status": row["status"], "needs_info": row["phone"][0] in "?@",
+            me = {"name": row["name"], "status": row["status"], "eta": row["eta"], "needs_info": row["phone"][0] in "?@",
                   "plus_left": max(row["plus"] - len(guests), 0), "guests": guests}
         if not me:  # the open link is shareable; the address is for invited people only
             ev["address"] = ""
         return {"event": ev, "me": me, "going": _going(conn, slug),
-                "maybe": _going(conn, slug, "maybe"), "invited": _going(conn, slug, "")}
+                "maybe": _going(conn, slug, "maybe"), "invited": _going(conn, slug, ""),
+                "late": {r["name"].split()[0]: r["eta"] for r in conn.execute(
+                    "SELECT name, eta FROM invites WHERE slug=? AND status='going' AND eta!=''", (slug,))}}
 
 
 @router.get("/api/e/{slug}/cal.ics")
@@ -173,6 +175,19 @@ async def rsvp(slug: str, request: Request):
         conn.execute("INSERT INTO invites (slug, name, phone, token, status, source, updated) VALUES (?, ?, ?, ?, ?, 'open', ?)",
                      (slug, name, phone, token, status, now))
         return {"ok": True, "token": token}
+
+
+@router.post("/api/e/{slug}/eta")
+async def eta(slug: str, request: Request):
+    """A going guest says when they'll actually arrive ('HH:MM', 24h), or '' for on time."""
+    body = await request.json()
+    if not re.fullmatch(r"(|([01]\d|2[0-3]):[0-5]\d)", body.get("eta", "x")):
+        raise HTTPException(400, "eta must be '' or HH:MM")
+    with closing(party.db()) as conn, conn:
+        cur = conn.execute("UPDATE invites SET eta=? WHERE slug=? AND token=? AND status='going'", (body["eta"], slug, body.get("t", "")))
+        if not cur.rowcount:
+            raise HTTPException(404, "say you're coming first")
+    return {"ok": True}
 
 
 @router.post("/api/e/{slug}/plusone")
