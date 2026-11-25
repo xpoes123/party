@@ -48,7 +48,7 @@ def delivered(phone: str, text: str) -> bool:
         mac(SEND[svc], phone, text)
         time.sleep(8)
         if sql(f"SELECT count(*) FROM message m JOIN handle h ON h.ROWID=m.handle_id WHERE m.ROWID>{int(before)} "
-               f"AND m.is_from_me=1 AND m.error=0 AND h.id LIKE '%{phone[-10:]}'") not in ("", "0"):
+               f"AND m.is_from_me=1 AND m.error=0 AND h.id LIKE '%{''.join(filter(str.isdigit, phone))[-10:]}'") not in ("", "0"):
             return True
     return False
 
