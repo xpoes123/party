@@ -91,6 +91,13 @@
   .msg:empty { margin: 0; }
   .msg.err { font: 500 15px/1.4 var(--sans); }
 
+  .plus { margin-top: 30px; padding-top: 24px; border-top: 1px solid var(--rule); text-align: center; }
+  .plus h2 { margin: 0; font: italic 400 22px/1 var(--fell); }
+  .plus .v { font: 400 20px/1.3 var(--fell); }
+  .plus .v small { color: var(--mute); font: 400 14px var(--sans); }
+  .plus .msg a { color: var(--ink); word-break: break-all; font: 500 14px/1.4 var(--sans); }
+  .pbtn { margin-top: 8px; padding: 12px 22px; border: 0; border-radius: 999px; background: var(--ink); color: var(--card); cursor: pointer;
+    font: 600 14px/1 var(--sans); letter-spacing: .12em; text-transform: uppercase; }
   section { margin-top: 34px; }
   .head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; padding-bottom: 10px; border-bottom: 1px solid var(--rule); }
   .head h2 { margin: 0; font: italic 400 24px/1 var(--fell); }
@@ -123,6 +130,7 @@ const CHIPS = { going: ["I'm in", '✓'], maybe: ['Maybe', '?'], no: ["Can't", '
 const DONE = { going: "You're in. See you at the table.", maybe: 'Marked maybe. Change it any time.', no: "Sorry you'll miss it." };
 const AV = ['#b01c22', '#24527e', '#2f5b3f', '#6a4a86', '#9a6a1e', '#3d4f63', '#8a3a5a', '#24201c'];
 const app = document.getElementById('app');
+let ME = null;
 
 const faces = (names, cls) => names.map(n => {
   const h = [...n].reduce((a, c) => a * 31 + c.charCodeAt(0) | 0, 0);
@@ -152,6 +160,8 @@ async function load() {
   const r = await fetch(`/api/e/${slug}` + (token ? `?t=${encodeURIComponent(token)}` : ''));
   if (!r.ok) { app.innerHTML = '<div class="card"><h1>No such event</h1></div>'; return; }
   const { event: e, me, going, maybe, invited } = await r.json();
+  ME = me;
+  const ask = !me || me.needs_info;  // open link, or a name-only invite that fills in its own number
   document.title = e.title;
   const rank = e.at ? new Date(e.at).getDate() : 'A';
   const where = e.address
@@ -171,12 +181,18 @@ async function load() {
     </div>
     <div class="ask ${rise()}">
       <h2>${me?.status ? 'Your answer' : 'Are you in?'}</h2>
-      ${me ? '' : `<div class="fields"><input id="name" placeholder="Your name" autocomplete="name">
-        <input id="phone" placeholder="Phone number" type="tel" autocomplete="tel"></div>`}
+      ${ask ? `<div class="fields"><input id="name" placeholder="Your full name" autocomplete="name" value="${esc(me?.name || '')}">
+        <input id="phone" placeholder="Phone number" type="tel" autocomplete="tel"></div>` : ''}
       <div class="chips ${me?.status ? 'picked' : ''}">${Object.entries(CHIPS).map(([k, [l, g]]) =>
         `<button class="chip ${k} ${me?.status === k ? 'on' : ''}" onclick="send('${k}')"><i>${g}</i>${l}</button>`).join('')}</div>
       <div id="msg" class="msg">${me?.status ? DONE[me.status] : ''}</div>
     </div>
+    ${me && (me.plus_left || me.guests.length) ? `<div class="plus ${rise()}">
+      ${me.guests.map(g => `<div class="v">+1 · ${esc(g)} <small>on the list</small></div>`).join('')}
+      ${me.plus_left && !me.needs_info ? `<h2>Bringing someone?</h2><div class="fields"><input id="pname" placeholder="Their name">
+        <input id="pphone" placeholder="Their phone number" type="tel"></div>
+        <button class="pbtn" onclick="addPlus()">Add my +1</button>` : ''}
+      <div id="pmsg" class="msg"></div></div>` : ''}
     ${going.length || maybe.length ? `<section class="${rise()}"><div class="head"><h2>At the table</h2>
       <span>${going.length} in${maybe.length ? ` · ${maybe.length} maybe` : ''}</span></div>
       <div class="people">${faces(going, '')}${faces(maybe, 'maybe')}</div></section>` : ''}
@@ -187,7 +203,8 @@ async function load() {
 }
 
 async function send(status) {
-  const body = token ? { t: token, status } : { status, name: document.getElementById('name').value, phone: document.getElementById('phone').value };
+  const f = id => document.getElementById(id)?.value;
+  const body = { t: token, status, name: f('name'), phone: f('phone') };
   const r = await fetch(`/api/e/${slug}/rsvp`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
   const msg = document.getElementById('msg');
   if (!r.ok) { msg.className = 'msg err'; msg.textContent = (await r.json()).detail || 'Something went wrong'; return; }
@@ -195,6 +212,18 @@ async function send(status) {
   if (!token) { location.replace(`/e/${slug}/${t}`); return; }  // personal link from now on
   app.classList.add('settled');
   load();
+}
+async function addPlus() {
+  const f = id => document.getElementById(id).value, pmsg = document.getElementById('pmsg');
+  const r = await fetch(`/api/e/${slug}/plusone`, { method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ t: token, name: f('pname'), phone: f('pphone') }) });
+  const d = await r.json();
+  if (!r.ok) { pmsg.className = 'msg err'; pmsg.textContent = d.detail || 'Something went wrong'; return; }
+  app.classList.add('settled');
+  await load();
+  const link = `${location.origin}/e/${slug}/${d.token}`;
+  document.getElementById('pmsg').innerHTML = `Done. Send them their invite:<br><a href="${link}">${link}</a>`;
+  if (navigator.share) navigator.share({ title: document.title, url: link }).catch(() => {});
 }
 load();
 </script>

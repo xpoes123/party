@@ -38,7 +38,7 @@
     <a class="ui-btn ui-btn--primary" id="people-link" href="/admin/people">Invite from your contacts →</a>
 
     <div class="ui-card ui-stack">
-      <div class="ui-label">Or paste: one <code>Name, phone</code> (or <code>Name, @discord</code>) per line. Discord guests aren't texted; copy their link and DM it.</div>
+      <div class="ui-label">Or paste: one <code>Name, phone</code> (or <code>Name, @discord</code>, or <code>Name, ?tag</code> to let them fill in their own number) per line. Discord guests aren't texted; copy their link and DM it.</div>
       <textarea class="ui-input" id="lines" rows="4" placeholder="Leo Park, 917-555-0101"></textarea>
       <div class="ui-flex"><button class="ui-btn" onclick="invite()">Add</button><span class="ui-muted" id="inv-msg"></span></div>
     </div>
@@ -54,7 +54,7 @@
       <div class="ui-muted" style="font-size:var(--text-xs)">Shortcut URL: <code id="blast-url"></code></div>
     </div>
 
-    <table class="ui-table"><thead><tr><th>Name</th><th>Phone</th><th>Status</th><th>Link</th><th></th></tr></thead><tbody id="rows"></tbody></table>
+    <table class="ui-table"><thead><tr><th>Name</th><th>Phone</th><th>Status</th><th>+1s</th><th>Link</th><th></th></tr></thead><tbody id="rows"></tbody></table>
   </div>
 </main>
 <script>
@@ -84,8 +84,10 @@ async function show(slug) {
   $('counts').innerHTML = [['Going', n('going')], ['Maybe', n('maybe')], ["Can't", n('no')], ['No reply', n('')]]
     .map(([l, v]) => `<div class="ui-stat"><div class="ui-stat__label">${l}</div><div class="ui-stat__value">${v}</div></div>`).join('');
   const pill = { going: 'ui-pill--ok', maybe: 'ui-pill--warn', no: 'ui-pill--bad' };
-  $('rows').innerHTML = invites.map(i => `<tr><td>${esc(i.name)}${i.source === 'open' ? ' <span class="ui-pill ui-pill--info">open link</span>' : ''}</td>
-    <td class="ui-mono">${esc(i.phone)}</td><td><span class="ui-pill ${pill[i.status] || ''}">${i.status || 'no reply'}</span></td>
+  const byId = Object.fromEntries(invites.map(i => [i.id, i.name]));
+  $('rows').innerHTML = invites.map(i => `<tr><td>${esc(i.name)}${i.source === 'open' ? ' <span class="ui-pill ui-pill--info">open link</span>' : ''}${i.via ? ` <span class="ui-pill">+1 of ${esc(byId[i.via] || '?')}</span>` : ''}</td>
+    <td class="ui-mono">${i.phone.startsWith('?') ? '<span class="ui-muted">they fill it in</span>' : esc(i.phone)}</td><td><span class="ui-pill ${pill[i.status] || ''}">${i.status || 'no reply'}</span></td>
+    <td><button class="ui-btn ui-btn--ghost ui-btn--sm" onclick="plus(${i.id}, ${(i.plus + 1) % 3})">${i.plus ? '+' + i.plus : 'none'}</button></td>
     <td><button class="ui-btn ui-btn--ghost ui-btn--sm" onclick="navigator.clipboard.writeText('${location.origin}/e/${slug}/${i.token}')">copy</button></td>
     <td><button class="ui-btn ui-btn--danger ui-btn--sm" onclick="drop(${i.id})">remove</button></td></tr>`).join('');
   preview();
@@ -109,6 +111,7 @@ async function cover(file) {
   try { await api(`/admin/e/${cur}/cover`, { method: 'POST', body: JSON.stringify({ data: cv.toDataURL('image/jpeg', 0.85) }) });
     $('cover-msg').textContent = ''; show(cur); } catch (e) { $('cover-msg').textContent = e; }
 }
+async function plus(id, n) { await api(`/admin/invite/${id}`, { method: 'POST', body: JSON.stringify({ plus: n }) }); show(cur); }
 async function drop(id) { if (confirm('Remove this invite?')) { await api(`/admin/invite/${id}`, { method: 'DELETE' }); show(cur); } }
 async function preview() {
   const q = new URLSearchParams({ to: $('to').value, msg: $('msg').value });
