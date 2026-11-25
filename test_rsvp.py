@@ -150,6 +150,10 @@ def test():
     c.post(f"/admin/outbox/{box[0]['id']}/sent", headers=AK)
     assert box[0]["id"] not in [m["id"] for m in c.get("/admin/outbox", headers=AK).json()]
     assert c.get("/admin/outbox").status_code == 403
+    c.post("/admin/e/poker/invite", json={"lines": "Disco Guest, @298250592135020545"}, headers=AK)
+    dg = next(i for i in c.get("/admin/e/poker", headers=AK).json()["invites"] if i["name"] == "Disco Guest")
+    c.post("/api/e/poker/rsvp", json={"t": dg["token"], "status": "going"})
+    assert "@298250592135020545" in [m["phone"] for m in c.get("/admin/outbox", headers=AK).json()]
 
     # unknown event
     assert c.get("/api/e/nope").status_code == 404

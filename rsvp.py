@@ -354,7 +354,7 @@ def outbox(request: Request):
     with closing(party.db()) as conn:
         rows = conn.execute("""SELECT i.id, i.name, i.phone, i.token, e.slug, e.title, e.starts, e.at, e.address
                                FROM invites i JOIN events e USING (slug)
-                               WHERE i.status='going' AND i.texted=0 AND i.phone LIKE '+%' ORDER BY i.updated""")
+                               WHERE i.status='going' AND i.texted=0 AND (i.phone LIKE '+%' OR i.phone GLOB '@[0-9]*') ORDER BY i.updated""")
         out = []
         for r in rows:
             when = datetime.strptime(r["at"], "%Y-%m-%dT%H:%M").strftime("%a %b %-d at %-I:%M %p") if r["at"] else r["starts"]
