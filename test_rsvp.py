@@ -100,7 +100,7 @@ def test():
     c.post("/admin/contact", json={"phone": "+16305550100", "hidden": True}, headers=AK)
     c.post("/admin/contacts/sync", json=[["Test P. Renamed", "6305550100"]], headers=AK)
     assert c.get("/admin/contacts", headers=AK).json() == [
-        {"phone": "+16305550100", "name": "Test P. Renamed", "tags": "poker,trivia", "hidden": 1}]
+        {"phone": "+16305550100", "name": "Test P. Renamed", "tags": "poker,trivia", "hidden": 1, "mac": 1}]
 
     # invited-but-unanswered list is public on the event page
     c.post("/admin/e/poker/invite", json={"lines": "Geoff Wu, 6305550111"}, headers=AK)
@@ -112,7 +112,7 @@ def test():
     assert all(not r["phone"].startswith("@") for r in c.get("/admin/e/poker/blast?to=all&msg=x", headers=AK).json())
     emily = next(i for i in c.get("/admin/e/poker", headers=AK).json()["invites"] if i["name"] == "Emily Yao")
     assert c.post("/api/e/poker/rsvp", json={"t": emily["token"], "status": "going", "name": "", "phone": "6305550555"}).status_code == 200
-    assert any(x["phone"] == "+16305550555" and x["name"] == "Emily Yao" and x["tags"] == "discord" for x in c.get("/admin/contacts", headers=AK).json())
+    assert any(x["phone"] == "+16305550555" and x["name"] == "Emily Yao (Poker night)" and x["tags"] == "discord" for x in c.get("/admin/contacts", headers=AK).json())
 
     # +1s: only when the host allows one; the +1 is going, gets a link, and lands in contacts
     inv = {i["name"]: i for i in c.get("/admin/e/poker", headers=AK).json()["invites"]}
@@ -125,7 +125,10 @@ def test():
     me = c.get(f"/api/e/poker?t={host['token']}").json()["me"]
     assert me["plus_left"] == 0 and me["guests"] == ["Alex Q"]
     assert c.post("/api/e/poker/plusone", json={"t": host["token"], "name": "Bo", "phone": "6305550333"}).status_code == 403
-    assert {"phone": "+16305550222", "name": "Alex Q", "tags": "plus-one", "hidden": 0} in c.get("/admin/contacts", headers=AK).json()
+    assert {"phone": "+16305550222", "name": "Alex Q (Geoff +1)", "tags": "plus-one", "hidden": 0, "mac": 0} in c.get("/admin/contacts", headers=AK).json()
+    assert {"phone": "+16305550222", "name": "Alex Q (Geoff +1)"} in c.get("/admin/contacts/new", headers=AK).json()
+    c.post("/admin/contacts/new/done", json={"phone": "+16305550222"}, headers=AK)
+    assert "+16305550222" not in [x["phone"] for x in c.get("/admin/contacts/new", headers=AK).json()]
 
     # `Name, ?tag`: guest may add their own number on RSVP (optional); a personal link always shows the address
     c.post("/admin/e/poker/invite", json={"lines": "Ryan, ?stephanie"}, headers=AK)

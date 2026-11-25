@@ -41,9 +41,10 @@ def _going(conn, slug: str, status: str = "going") -> list[str]:
     return [r["name"].split()[0] for r in rows]
 
 
-def _remember(conn, phone: str, name: str, tag: str):
-    """People met through events (plus-ones, friends of friends) land in the contacts list."""
-    conn.execute("INSERT OR IGNORE INTO contacts (phone, name) VALUES (?, ?)", (phone, name))
+def _remember(conn, phone: str, name: str, tag: str, how: str):
+    """People met through events (plus-ones, friends of friends) land in the contacts list, named
+    with how David knows them ("Alex (Aitegin +1)"), and get pushed to his phone's Contacts."""
+    conn.execute("INSERT OR IGNORE INTO contacts (phone, name, mac) VALUES (?, ?, 0)", (phone, f"{name} ({how})"))
     tags = [t for t in conn.execute("SELECT tags FROM contacts WHERE phone=?", (phone,)).fetchone()["tags"].split(",") if t]
     if tag and tag not in tags:
         conn.execute("UPDATE contacts SET tags=? WHERE phone=?", (",".join(tags + [tag]), phone))
@@ -148,7 +149,8 @@ async def rsvp(slug: str, request: Request):
                 if (body.get("phone") or "").strip():
                     _, phone = _claim_phone(conn, slug, {**body, "name": name})
                     conn.execute("UPDATE invites SET phone=? WHERE id=?", (phone, row["id"]))
-                    _remember(conn, phone, name, "discord" if row["phone"][0] == "@" else row["source"].removeprefix("ask:"))
+                    _remember(conn, phone, name, "discord" if row["phone"][0] == "@" else row["source"].removeprefix("ask:"),
+                              _event(conn, slug)["title"])
             conn.execute("UPDATE invites SET status=?, updated=? WHERE id=?", (status, now, row["id"]))
             return {"ok": True, "token": body["t"]}
         name, phone = _claim_phone(conn, slug, body)
@@ -173,7 +175,7 @@ async def plusone(slug: str, request: Request):
         token = secrets.token_urlsafe(8)
         conn.execute("INSERT INTO invites (slug, name, phone, token, status, source, via, updated) VALUES (?, ?, ?, ?, 'going', 'plus1', ?, ?)",
                      (slug, name, phone, token, me["id"], int(time.time())))
-        _remember(conn, phone, name, "plus-one")
+        _remember(conn, phone, name, "plus-one", f"{me['name'].split()[0]} +1")
         return {"ok": True, "token": token}
 
 
@@ -268,7 +270,7 @@ async def admin_contacts_sync(request: Request):
         if (phone := norm_phone(raw)) and (name or "").strip():
             rows.setdefault(phone, name.strip()[:60])
     with closing(party.db()) as conn, conn:
-        conn.executemany("INSERT INTO contacts (phone, name) VALUES (?, ?) ON CONFLICT (phone) DO UPDATE SET name=excluded.name",
+        conn.executemany("INSERT INTO contacts (phone, name) VALUES (?, ?) ON CONFLICT (phone) DO UPDATE SET name=excluded.name, mac=1",
                          rows.items())
     return {"synced": len(rows)}
 
@@ -309,6 +311,22 @@ async def admin_invite_plus(iid: int, request: Request):
     plus = int((await request.json()).get("plus", 0))
     with closing(party.db()) as conn, conn:
         conn.execute("UPDATE invites SET plus=? WHERE id=?", (min(max(plus, 0), 5), iid))
+    return {"ok": True}
+
+
+@router.get("/admin/contacts/new")
+def contacts_new(request: Request):
+    """Contacts made at events that aren't on the phone yet; send_confirmations.py adds them to the Mac."""
+    party.require_admin(request)
+    with closing(party.db()) as conn:
+        return [dict(r) for r in conn.execute("SELECT phone, name FROM contacts WHERE mac=0")]
+
+
+@router.post("/admin/contacts/new/done")
+async def contacts_new_done(request: Request):
+    party.require_admin(request)
+    with closing(party.db()) as conn, conn:
+        conn.execute("UPDATE contacts SET mac=1 WHERE phone=?", ((await request.json()).get("phone", ""),))
     return {"ok": True}
 
 
