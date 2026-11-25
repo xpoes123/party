@@ -5,3 +5,4 @@
 - Use semantic tokens (`var(--bg|--surface|--surface-2|--line|--line-2|--text|--text-2|--muted|--accent|--ok|--bad|--warn|--info)`), scales (`--space-*`, `--radius*`, `--text-*`) and `ui-*` components (`ui-btn`, `ui-card`, `ui-stat`, `ui-pill`, `ui-flex`, `ui-stack`, ...). Theme = `data-theme` attribute; default is `davidj`.
 - **Need a color, component, variant or asset that doesn't exist? Add it to toolkit `web/ui/`, not locally.** Edit tokens/themes/`components.css`, run `web/ui/check.sh <dir>`, commit + push toolkit, then `ssh root@87.99.136.82 'git -C /opt/toolkit pull'` (live within 5 min cache). Local one-off CSS is for layout of that page only.
 - Public/branded products (scibowl-org, davidJ, poverty-football, redherring, tv, games) keep their own look and opt out.
+- Exception: guest-facing pages (`static/rsvp.html`) are seen by other people, so they own their look (card-club theme) and don't use ui.css. Admin pages stay on the shared system.
