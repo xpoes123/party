@@ -138,6 +138,8 @@ def init():
             conn.execute("ALTER TABLE invites ADD COLUMN plus INTEGER NOT NULL DEFAULT 0")
         if "via" not in cols:  # invite id of the guest who brought this +1
             conn.execute("ALTER TABLE invites ADD COLUMN via INTEGER")
+        if "texted" not in cols:  # 1 once the "you're confirmed" text went out
+            conn.execute("ALTER TABLE invites ADD COLUMN texted INTEGER NOT NULL DEFAULT 0")
 
 
 init()

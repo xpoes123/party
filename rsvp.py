@@ -309,6 +309,34 @@ async def admin_invite_plus(iid: int, request: Request):
     return {"ok": True}
 
 
+@router.get("/admin/outbox")
+def outbox(request: Request):
+    """Confirmation texts not yet sent: guests who said going. send_confirmations.py on the desktop
+    sends each through the Mac's Messages, then marks it sent."""
+    party.require_admin(request)
+    base = (PUBLIC_URL or str(request.base_url)).rstrip("/")
+    with closing(party.db()) as conn:
+        rows = conn.execute("""SELECT i.id, i.name, i.phone, i.token, e.slug, e.title, e.starts, e.at, e.address
+                               FROM invites i JOIN events e USING (slug)
+                               WHERE i.status='going' AND i.texted=0 AND i.phone LIKE '+%' ORDER BY i.updated""")
+        out = []
+        for r in rows:
+            when = datetime.strptime(r["at"], "%Y-%m-%dT%H:%M").strftime("%a %b %-d at %-I:%M %p") if r["at"] else r["starts"]
+            out.append({"id": r["id"], "phone": r["phone"], "text":
+                        f"[Automated message] RSVP confirmed: {r['name'].split()[0]}, you're coming to {r['title']} "
+                        f"on {when}" + (f" at {r['address']}" if r["address"] else "") +
+                        f". To change your answer: {base}/e/{r['slug']}/{r['token']}"})
+        return out
+
+
+@router.post("/admin/outbox/{iid}/sent")
+def outbox_sent(iid: int, request: Request):
+    party.require_admin(request)
+    with closing(party.db()) as conn, conn:
+        conn.execute("UPDATE invites SET texted=1 WHERE id=?", (iid,))
+    return {"ok": True}
+
+
 @router.delete("/admin/invite/{iid}")
 def admin_uninvite(iid: int, request: Request):
     party.require_admin(request)
