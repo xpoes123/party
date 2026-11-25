@@ -136,6 +136,19 @@
   [data-theme="noir"] .av { box-shadow: 0 0 0 2px var(--card), 0 0 0 3px var(--rule); }
   [data-theme="noir"] .person.pending .av { border-color: rgba(236, 228, 214, .25); }
   [data-theme="noir"] .stamp { display: block; }
+  /* noir RSVP buttons: evidence tags */
+  .tg { position: relative; display: block; width: 100%; max-width: 104px; padding: 26px 6px 32px; color: #1a1412; background: #d8ccb2;
+    clip-path: polygon(22% 0, 78% 0, 100% 20%, 100% 100%, 0 100%, 0 20%); font: 400 15px/1.2 var(--sans); letter-spacing: .04em; text-transform: none;
+    transition: transform .35s cubic-bezier(.3, 1.6, .5, 1), background .25s; }
+  .tg::before { content: ""; position: absolute; top: 9px; left: 50%; width: 10px; height: 10px; margin-left: -5px; border-radius: 50%;
+    background: var(--card); box-shadow: 0 0 0 2px #a8997c; }
+  .tg b { display: block; margin-bottom: 6px; color: var(--red); font: 400 10.5px/1 var(--sans); letter-spacing: .16em; text-transform: uppercase; }
+  .going .tg { transform: rotate(-4deg); } .maybe .tg { transform: rotate(2deg); } .no .tg { transform: rotate(-1deg); }
+  [data-theme="noir"] .chip { filter: drop-shadow(0 10px 12px rgba(0, 0, 0, .6)); }
+  [data-theme="noir"] .chip:hover .tg { transform: rotate(0) translateY(-3px); }
+  .chip.on .tg { background: #f1e7d1; transform: rotate(0) translateY(-6px); }
+  .chip.on .tg::after { content: "FILED"; position: absolute; right: 10px; bottom: 7px; padding: 2px 5px; border: 2px solid var(--red); border-radius: 3px;
+    color: var(--red); font: 400 11px/1 var(--sans); letter-spacing: .14em; transform: rotate(-14deg); opacity: .9; }
   .stamp { display: none; position: absolute; top: 22px; right: 22px; transform: rotate(8deg); padding: 4px 10px; border: 2px solid var(--red);
     border-radius: 4px; color: var(--red); font: 400 13px/1 var(--sans); letter-spacing: .2em; opacity: .85; }
 
@@ -154,13 +167,16 @@
 const [, , slug, token] = location.pathname.split('/');
 const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 const CHIPS = { going: ["I'm in", '✓'], maybe: ['Maybe', '?'], no: ["Can't", '✕'] };
-// Per-event look and copy (events.theme). '' = the card-table theme.
+// Per-event look and copy (events.theme). '' = the card-table theme. Each theme fills the same sprite slots:
+// button (the RSVP choices), orn (divider glyphs), idx (corner marks), plus its CSS block above.
+const chipBtn = (k, label, glyph) => `<i>${glyph}</i>${label}`;
+const tagBtn = (k, label) => `<span class="tg"><b>Exhibit ${{ going: 'A', maybe: 'B', no: 'C' }[k]}</b>${label}</span>`;
 const THEMES = {
   '': { fonts: 'IM+Fell+English:ital@0;1&family=IM+Fell+English+SC&family=Archivo+Narrow:wght@400;500;600;700', invited: n => `${n}, you're invited`,
-    orn: ['♠', '♥', '♣', '♦'], table: 'At the table', pending: 'Invited', idx: d => [d ? d.getDate() : 'A', '♦'],
+    button: chipBtn, orn: ['♠', '♥', '♣', '♦'], table: 'At the table', pending: 'Invited', idx: d => [d ? d.getDate() : 'A', '♦'],
     done: { going: "You're in. See you at the table.", maybe: 'Marked maybe. Change it any time.', no: "Sorry you'll miss it." } },
   noir: { fonts: 'Gloock&family=Special+Elite', invited: n => `${n}, you're a suspect`,
-    orn: ['†', '†', '†'], table: 'The suspects', pending: 'Still at large',
+    button: tagBtn, orn: ['†', '†', '†'], table: 'The suspects', pending: 'Still at large',
     idx: d => [d ? `CASE NO. ${d.getMonth() + 1}${String(d.getDate()).padStart(2, '0')}` : 'CASE FILE', ''],
     done: { going: "You're on the list. Trust no one.", maybe: "Noted. We'll be watching.", no: 'Suspicious. Very suspicious.' } },
 };
@@ -229,7 +245,7 @@ async function load() {
       ${ask ? `<div class="fields"><input id="name" placeholder="Your full name" autocomplete="name" value="${esc(me?.name || '')}">
         <input id="phone" placeholder="Phone number" type="tel" autocomplete="tel"></div>` : ''}
       <div class="chips ${me?.status ? 'picked' : ''}">${Object.entries(CHIPS).map(([k, [l, g]]) =>
-        `<button class="chip ${k} ${me?.status === k ? 'on' : ''}" onclick="send('${k}')"><i>${g}</i>${l}</button>`).join('')}</div>
+        `<button class="chip ${k} ${me?.status === k ? 'on' : ''}" onclick="send('${k}')">${T.button(k, l, g)}</button>`).join('')}</div>
       <div id="msg" class="msg">${me?.status ? T.done[me.status] : ''}</div>
     </div>
     ${me && (me.plus_left || me.guests.length) ? `<div class="plus ${rise()}">
