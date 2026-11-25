@@ -133,6 +133,11 @@ def init():
         for col in ("at", "address", "cover", "host"):  # at = local 'YYYY-MM-DDTHH:MM'
             if col not in cols:
                 conn.execute(f"ALTER TABLE events ADD COLUMN {col} TEXT NOT NULL DEFAULT ''")
+        cols = [r["name"] for r in conn.execute("PRAGMA table_info(invites)")]
+        if "plus" not in cols:  # how many +1s this guest may bring
+            conn.execute("ALTER TABLE invites ADD COLUMN plus INTEGER NOT NULL DEFAULT 0")
+        if "via" not in cols:  # invite id of the guest who brought this +1
+            conn.execute("ALTER TABLE invites ADD COLUMN via INTEGER")
 
 
 init()

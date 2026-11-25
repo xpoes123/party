@@ -41,6 +41,26 @@ def _going(conn, slug: str, status: str = "going") -> list[str]:
     return [r["name"].split()[0] for r in rows]
 
 
+def _remember(conn, phone: str, name: str, tag: str):
+    """People met through events (plus-ones, friends of friends) land in the contacts list."""
+    conn.execute("INSERT OR IGNORE INTO contacts (phone, name) VALUES (?, ?)", (phone, name))
+    tags = [t for t in conn.execute("SELECT tags FROM contacts WHERE phone=?", (phone,)).fetchone()["tags"].split(",") if t]
+    if tag and tag not in tags:
+        conn.execute("UPDATE contacts SET tags=? WHERE phone=?", (",".join(tags + [tag]), phone))
+
+
+def _claim_phone(conn, slug: str, body: dict) -> tuple[str, str]:
+    name = (body.get("name") or "").strip()[:60]
+    phone = norm_phone(body.get("phone", ""))
+    if not name or not phone:
+        raise HTTPException(400, "need a name and a valid phone number")
+    # A phone already on the list must use its personal link: otherwise anyone who knows a
+    # guest's number could change their RSVP and read their link (and the address).
+    if conn.execute("SELECT 1 FROM invites WHERE slug=? AND phone=?", (slug, phone)).fetchone():
+        raise HTTPException(409, "That number is already on the list. Use the link that was texted to it.")
+    return name, phone
+
+
 def _uploads() -> str:
     path = os.path.join(os.path.dirname(party.DB), "uploads")
     os.makedirs(path, exist_ok=True)
@@ -68,10 +88,15 @@ def page(slug: str, token: str = ""):
 def public(slug: str, t: str = ""):
     with closing(party.db()) as conn:
         ev = dict(_event(conn, slug))
-        me = conn.execute("SELECT name, status FROM invites WHERE slug=? AND token=?", (slug, t)).fetchone() if t else None
-        if not me:  # the open link is shareable; the address is for invited people only
+        row = conn.execute("SELECT * FROM invites WHERE slug=? AND token=?", (slug, t)).fetchone() if t else None
+        me = None
+        if row:
+            guests = [r["name"] for r in conn.execute("SELECT name FROM invites WHERE via=? ORDER BY id", (row["id"],))]
+            me = {"name": row["name"], "status": row["status"], "needs_info": row["phone"].startswith("?"),
+                  "plus_left": max(row["plus"] - len(guests), 0), "guests": guests}
+        if not me or me["needs_info"]:  # the open link is shareable; the address is for invited people only
             ev["address"] = ""
-        return {"event": ev, "me": dict(me) if me else None, "going": _going(conn, slug),
+        return {"event": ev, "me": me, "going": _going(conn, slug),
                 "maybe": _going(conn, slug, "maybe"), "invited": _going(conn, slug, "")}
 
 
@@ -114,22 +139,38 @@ async def rsvp(slug: str, request: Request):
     with closing(party.db()) as conn, conn:
         _event(conn, slug)
         if body.get("t"):
-            cur = conn.execute("UPDATE invites SET status=?, updated=? WHERE slug=? AND token=?",
-                               (status, now, slug, body["t"]))
-            if not cur.rowcount:
+            row = conn.execute("SELECT * FROM invites WHERE slug=? AND token=?", (slug, body["t"])).fetchone()
+            if not row:
                 raise HTTPException(404, "unknown invite link")
+            if row["phone"].startswith("?"):  # name-only invite: the guest fills in their own number once
+                name, phone = _claim_phone(conn, slug, body)
+                conn.execute("UPDATE invites SET name=?, phone=? WHERE id=?", (name, phone, row["id"]))
+                _remember(conn, phone, name, row["source"].removeprefix("ask:"))
+            conn.execute("UPDATE invites SET status=?, updated=? WHERE id=?", (status, now, row["id"]))
             return {"ok": True, "token": body["t"]}
-        name = (body.get("name") or "").strip()[:60]
-        phone = norm_phone(body.get("phone", ""))
-        if not name or not phone:
-            raise HTTPException(400, "need a name and a valid phone number")
-        # A phone already on the list must use its personal link: otherwise anyone who knows a
-        # guest's number could change their RSVP and read their link (and the address).
-        if conn.execute("SELECT 1 FROM invites WHERE slug=? AND phone=?", (slug, phone)).fetchone():
-            raise HTTPException(409, "You're already on the list. Use the link that was texted to you.")
+        name, phone = _claim_phone(conn, slug, body)
         token = secrets.token_urlsafe(8)
         conn.execute("INSERT INTO invites (slug, name, phone, token, status, source, updated) VALUES (?, ?, ?, ?, ?, 'open', ?)",
                      (slug, name, phone, token, status, now))
+        return {"ok": True, "token": token}
+
+
+@router.post("/api/e/{slug}/plusone")
+async def plusone(slug: str, request: Request):
+    """An invited guest adds their +1 (name + number). The +1 gets their own link, marked going."""
+    body = await request.json()
+    with closing(party.db()) as conn, conn:
+        me = conn.execute("SELECT * FROM invites WHERE slug=? AND token=?", (slug, body.get("t", ""))).fetchone()
+        if not me:
+            raise HTTPException(404, "unknown invite link")
+        used = conn.execute("SELECT COUNT(*) FROM invites WHERE via=?", (me["id"],)).fetchone()[0]
+        if used >= me["plus"]:
+            raise HTTPException(403, "No +1 spots left on this invite")
+        name, phone = _claim_phone(conn, slug, body)
+        token = secrets.token_urlsafe(8)
+        conn.execute("INSERT INTO invites (slug, name, phone, token, status, source, via, updated) VALUES (?, ?, ?, ?, 'going', 'plus1', ?, ?)",
+                     (slug, name, phone, token, me["id"], int(time.time())))
+        _remember(conn, phone, name, "plus-one")
         return {"ok": True, "token": token}
 
 
@@ -191,7 +232,8 @@ async def admin_cover(slug: str, request: Request):
 
 @router.post("/admin/e/{slug}/invite")
 async def admin_invite(slug: str, request: Request):
-    """Paste `Name, phone` lines, or `Name, @discord` for people without a number. Same phone twice = one invite."""
+    """Paste `Name, phone` lines. `Name, @discord` = Discord-only guest. `Name, ?tag` = guest fills in their own
+    number on first RSVP and is saved to contacts with that tag. Same phone twice = one invite."""
     party.require_admin(request)
     lines = (await request.json()).get("lines", "")
     added, skipped = 0, []
@@ -202,11 +244,14 @@ async def admin_invite(slug: str, request: Request):
             raw = raw.strip()
             # ponytail: Discord guests reuse the phone column as their unique key; you DM them the link yourself
             phone = raw.lower() if re.fullmatch(r"@[\w.]{2,32}", raw) else norm_phone(raw)
+            source = "invite"
+            if raw.startswith("?"):  # unique placeholder until the guest claims it
+                phone, source = "?" + secrets.token_hex(4), "ask:" + re.sub(r"[^a-z0-9-]", "", raw[1:].lower())
             if not name.strip() or not phone:
                 skipped.append(line)
                 continue
-            cur = conn.execute("INSERT OR IGNORE INTO invites (slug, name, phone, token, updated) VALUES (?, ?, ?, ?, ?)",
-                               (slug, name.strip()[:60], phone, secrets.token_urlsafe(8), int(time.time())))
+            cur = conn.execute("INSERT OR IGNORE INTO invites (slug, name, phone, token, source, updated) VALUES (?, ?, ?, ?, ?, ?)",
+                               (slug, name.strip()[:60], phone, secrets.token_urlsafe(8), source, int(time.time())))
             added += cur.rowcount
     return {"added": added, "skipped": skipped}
 
@@ -255,6 +300,15 @@ def admin_event_detail(slug: str, request: Request):
         return {"event": dict(ev), "invites": [dict(r) for r in rows]}
 
 
+@router.post("/admin/invite/{iid}")
+async def admin_invite_plus(iid: int, request: Request):
+    party.require_admin(request)
+    plus = int((await request.json()).get("plus", 0))
+    with closing(party.db()) as conn, conn:
+        conn.execute("UPDATE invites SET plus=? WHERE id=?", (min(max(plus, 0), 5), iid))
+    return {"ok": True}
+
+
 @router.delete("/admin/invite/{iid}")
 def admin_uninvite(iid: int, request: Request):
     party.require_admin(request)
@@ -274,7 +328,7 @@ def blast(slug: str, request: Request, msg: str, to: str = "pending"):
     base = (PUBLIC_URL or str(request.base_url)).rstrip("/")
     with closing(party.db()) as conn:
         _event(conn, slug)
-        rows = conn.execute(f"SELECT name, phone, token FROM invites WHERE slug=? AND phone NOT LIKE '@%' {where[to]} ORDER BY name", (slug,))
+        rows = conn.execute(f"SELECT name, phone, token FROM invites WHERE slug=? AND phone NOT LIKE '@%' AND phone NOT LIKE '?%' {where[to]} ORDER BY name", (slug,))
         return [{"name": r["name"], "phone": r["phone"],
                  "text": msg.replace("{name}", r["name"].split()[0]).replace("{link}", f"{base}/e/{slug}/{r['token']}")}
                 for r in rows]
