@@ -213,19 +213,26 @@ const faces = (names, cls) => names.map(n => {
 function calLinks(e) {
   const p = n => String(n).padStart(2, '0');
   const fmt = d => `${d.getFullYear()}${p(d.getMonth() + 1)}${p(d.getDate())}T${p(d.getHours())}${p(d.getMinutes())}00`;
-  const start = new Date(e.at), end = new Date(start.getTime() + 3 * 3600e3);  // same fixed 3h block as the .ics
+  const start = new Date(e.at), end = endOf(e);
   const g = 'https://calendar.google.com/calendar/render?' + new URLSearchParams({ action: 'TEMPLATE', text: e.title,
     dates: `${fmt(start)}/${fmt(end)}`, ctz: 'America/New_York', location: e.address, details: location.href });
   return `<div class="cal"><a href="${g}" target="_blank" rel="noopener">+ Google Calendar</a>
     <a href="/api/e/${slug}/cal.ics?t=${encodeURIComponent(token)}">+ Apple Calendar</a></div>`;
 }
 
+const t12 = d => d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+function endOf(e) {  // same rule as the .ics: `ends` HH:MM (past midnight rolls over), else 3h
+  const s = new Date(e.at);
+  if (!e.ends) return new Date(s.getTime() + 3 * 3600e3);
+  const d = new Date(`${e.at.slice(0, 10)}T${e.ends}`);
+  return d > s ? d : new Date(d.getTime() + 864e5);
+}
 function whenFact(e, me) {
   if (!e.at) return `<div class="fact"><div class="k">When</div><div class="v">${esc(e.starts)}</div></div>`;
   const d = new Date(e.at);  // 'YYYY-MM-DDTHH:MM' parses as local time
   return `<div class="fact"><div class="k">When</div><div>
     <div class="v">${d.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}</div>
-    <small>${d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })} onward</small>${me ? calLinks(e) : ''}</div></div>`;
+    <small>${t12(d)}${e.ends ? ' – ' + t12(endOf(e)) : ' onward'}</small>${me ? calLinks(e) : ''}</div></div>`;
 }
 
 async function load() {
