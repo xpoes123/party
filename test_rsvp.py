@@ -144,6 +144,15 @@ def test():
     assert any(x["phone"] == "+16305550444" and x["tags"] == "stephanie" for x in c.get("/admin/contacts", headers=AK).json())
     assert all(not r["phone"].startswith("?") for r in c.get("/admin/e/poker/blast?to=all&msg=x", headers=AK).json())
 
+    # running late: only for going guests; shows up in the public late list
+    assert c.post("/api/e/poker/eta", json={"t": ryan["token"], "eta": "45"}).status_code == 400
+    assert c.post("/api/e/poker/eta", json={"t": ryan["token"], "eta": "21:30"}).status_code == 200
+    assert c.get(f"/api/e/poker?t={ryan['token']}").json()["me"]["eta"] == "21:30"
+    assert c.get("/api/e/poker").json()["late"]["Ryan"] == "21:30"
+    c.post("/api/e/poker/rsvp", json={"t": ryan["token"], "status": "maybe"})
+    assert c.post("/api/e/poker/eta", json={"t": ryan["token"], "eta": "22:00"}).status_code == 404
+    c.post("/api/e/poker/rsvp", json={"t": ryan["token"], "status": "going"})
+
     # confirmation outbox: real phones that said going, once each
     box = c.get("/admin/outbox", headers=AK).json()
     assert box and all(m["phone"].startswith("+") and "you're coming to" in m["text"] for m in box)
