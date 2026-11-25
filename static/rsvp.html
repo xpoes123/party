@@ -3,121 +3,125 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="theme-color" content="#110c09">
+<meta name="theme-color" content="#16301f">
 <title>RSVP</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Limelight&family=Courier+Prime:wght@400;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=IM+Fell+English:ital@0;1&family=IM+Fell+English+SC&family=Archivo+Narrow:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
-  /* Guests see this page, so it has its own back-room card-club look instead of the shared ui.css. */
+  /* Guests see this page, so it owns its look: the invite is a playing card lying on felt. */
   :root {
-    --bg: #110c09; --card: #1c1511; --line: rgba(244, 232, 210, .11); --line-2: rgba(244, 232, 210, .2);
-    --ink: #f4e8d2; --ink-2: #c4b398; --mute: #8a7a64; --gold: #e2b36b; --red: #b3261e; --red-2: #e0493d;
-    --r: 20px; --pad: 22px; --display: 'Limelight', Georgia, serif; --ds: normal; --dw: 400; --sans: 'Courier Prime', ui-monospace, monospace;
-    --label: var(--sans); color-scheme: dark;
+    --felt: #16301f; --felt-2: #234a32; --card: #f4eddd; --card-2: #ebe1cb; --ink: #1c1814; --ink-2: #4a4137;
+    --mute: #8a7c68; --rule: rgba(28, 24, 20, .14); --red: #b01c22;
+    --r: 22px; --pad: 24px; color-scheme: light;
+    --fell: 'IM Fell English', Georgia, serif; --sc: 'IM Fell English SC', Georgia, serif; --sans: 'Archivo Narrow', 'Arial Narrow', sans-serif;
   }
   * { box-sizing: border-box; }
-  html { background: var(--bg); }
+  html { background: var(--felt); }
   body {
     margin: 0; min-height: 100vh; color: var(--ink); -webkit-font-smoothing: antialiased;
-    font: 400 16px/1.55 var(--sans);
+    font: 400 17px/1.5 var(--sans);
     background:
-      radial-gradient(110% 55% at 50% -8%, rgba(226, 179, 107, .16), transparent 62%),
-      radial-gradient(90% 45% at 50% 108%, rgba(31, 74, 54, .38), transparent 70%),
-      var(--bg);
+      radial-gradient(70% 40% at 50% 0%, rgba(255, 214, 140, .22), transparent 70%),
+      radial-gradient(120% 90% at 50% 40%, var(--felt-2), var(--felt) 70%, #0c1c12);
     background-attachment: fixed;
   }
-  body::after {  /* film grain */
-    content: ""; position: fixed; inset: 0; pointer-events: none; opacity: .09; mix-blend-mode: overlay;
-    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='180' height='180'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='2' stitchTiles='stitch'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
+  body::before {  /* felt nap */
+    content: ""; position: fixed; inset: 0; pointer-events: none; opacity: .35; mix-blend-mode: overlay;
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='200' height='200'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='1.2' numOctaves='3' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 .5 0 0 0 0 .5 0 0 0 0 .5 0 0 0 .9 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
   }
-  main { max-width: 540px; margin: 0 auto; padding: max(var(--pad), env(safe-area-inset-top)) var(--pad) calc(56px + env(safe-area-inset-bottom)); }
-  a { color: var(--gold); text-decoration: none; border-bottom: 1px solid rgba(226, 179, 107, .35); }
+  main { position: relative; max-width: 520px; margin: 0 auto;
+    padding: max(20px, env(safe-area-inset-top)) 14px calc(40px + env(safe-area-inset-bottom)); }
 
-  .cover { display: block; width: 100%; aspect-ratio: 16 / 9; object-fit: cover; border-radius: var(--r);
-    box-shadow: 0 0 0 1px var(--line-2), 0 32px 60px -24px #000, 0 0 80px -30px rgba(226, 179, 107, .35); }
-  .eyebrow { margin-top: 34px; display: flex; align-items: center; gap: 10px; color: var(--gold);
-    font: 700 12px/1 var(--label); letter-spacing: .22em; text-transform: uppercase; }
-  .eyebrow::before { content: "♠"; font-size: 15px; letter-spacing: 0; }
-  h1 { margin: 14px 0 0; font: var(--ds) var(--dw) clamp(38px, 11vw, 58px)/1.02 var(--display); letter-spacing: -.015em; text-wrap: balance; }
-  .brush { width: 58%; height: 9px; margin-top: 16px; border-radius: 50%; transform: skewX(-24deg) rotate(-1.5deg);
-    background: linear-gradient(90deg, transparent, var(--red) 10%, var(--red-2) 72%, transparent); }
-  .blurb { margin: 22px 0 0; color: var(--ink-2); font-size: 17px; white-space: pre-line; }
+  .card { position: relative; background: var(--card); border-radius: var(--r); padding: 76px var(--pad) 76px;
+    box-shadow: 0 1px 0 rgba(255, 255, 255, .6) inset, 0 2px 3px rgba(0, 0, 0, .25), 0 30px 60px -20px rgba(0, 0, 0, .7);
+    background-image: radial-gradient(120% 80% at 50% 0%, #fbf6ea, transparent 60%); }
+  .card::before { content: ""; position: absolute; inset: 9px; border: 1px solid var(--rule); border-radius: 15px; pointer-events: none; }
+  .idx { position: absolute; top: 18px; left: 18px; display: flex; flex-direction: column; align-items: center; color: var(--red);
+    font: 400 28px/.9 var(--fell); }
+  .idx small { font-size: 22px; line-height: 1; margin-top: 2px; }
+  .idx.br { top: auto; left: auto; bottom: 18px; right: 18px; transform: rotate(180deg); }
 
-  .card { margin-top: 30px; background: linear-gradient(180deg, rgba(255, 255, 255, .03), transparent), var(--card);
-    border: 1px solid var(--line); border-radius: var(--r); }
-  .row { display: flex; align-items: center; gap: 16px; padding: 18px var(--pad); }
-  .row + .row { border-top: 1px solid var(--line); }
-  .row small { display: block; color: var(--mute); font-size: 13px; margin-top: 2px; }
-  .tile { flex: none; width: 58px; border-radius: 12px; overflow: hidden; text-align: center; background: var(--ink); color: var(--bg);
-    box-shadow: 0 8px 18px -8px #000; }
-  .tile b { display: block; padding: 5px 0 4px; background: var(--red); color: var(--ink); font: 600 10.5px/1 var(--label); letter-spacing: .18em; }
-  .tile span { display: block; padding: 3px 0 6px; font: var(--ds) var(--dw) 28px/1 var(--display); }
-  .ico { flex: none; width: 58px; text-align: center; font-size: 22px; color: var(--gold); }
-  .big { font-size: 17px; font-weight: 500; }
-  .perf { position: relative; height: 0; margin: 0 18px; border-top: 2px dashed var(--line-2); }
-  .perf::before, .perf::after { content: ""; position: absolute; top: -12px; width: 22px; height: 22px; border-radius: 50%;
-    background: var(--bg); border: 1px solid var(--line); }
-  .perf::before { left: -31px; } .perf::after { right: -31px; }
+  .cover { display: block; width: 100%; aspect-ratio: 16 / 9; object-fit: cover; border-radius: 6px;
+    box-shadow: 0 0 0 1px rgba(28, 24, 20, .25), 0 0 0 5px var(--card), 0 0 0 6px var(--rule); }
+  .eyebrow { margin-top: 30px; text-align: center; color: var(--red); font: 600 13px/1 var(--sans); letter-spacing: .26em; text-transform: uppercase; }
+  h1 { margin: 12px 0 0; text-align: center; font: 400 clamp(42px, 12.5vw, 62px)/.95 var(--sc); letter-spacing: -.01em; text-wrap: balance; }
+  .orn { display: flex; align-items: center; gap: 12px; margin: 18px auto 0; max-width: 300px; color: var(--ink-2); font-size: 14px; letter-spacing: .5em; }
+  .orn::before, .orn::after { content: ""; flex: 1; height: 1px; background: var(--rule); }
+  .orn b { font-weight: 400; } .orn b:nth-child(even) { color: var(--red); }
+  .blurb { margin: 20px 0 0; text-align: center; font: italic 400 19px/1.45 var(--fell); color: var(--ink-2); white-space: pre-line; }
 
-  .ask { padding: 24px var(--pad) 26px; }
-  .label { color: var(--mute); font: 700 11.5px/1 var(--label); letter-spacing: .2em; text-transform: uppercase; }
-  .fields { display: grid; gap: 10px; margin: 16px 0 6px; }
-  .fields input { width: 100%; padding: 14px 16px; border-radius: 12px; border: 1px solid var(--line-2); background: rgba(0, 0, 0, .25);
-    color: var(--ink); font: inherit; outline: none; transition: border-color .2s; }
-  .fields input:focus { border-color: var(--gold); }
-  .fields input::placeholder { color: var(--mute); }
+  .facts { margin-top: 28px; border-top: 1px solid var(--rule); }
+  .fact { display: grid; grid-template-columns: 78px 1fr; gap: 14px; padding: 16px 0; border-bottom: 1px solid var(--rule); }
+  .fact .k { padding-top: 3px; color: var(--mute); font: 600 12px/1.4 var(--sans); letter-spacing: .2em; text-transform: uppercase; }
+  .fact .v { font: 400 21px/1.25 var(--fell); }
+  .fact small { display: block; margin-top: 4px; color: var(--mute); font: 400 15px/1.35 var(--sans); }
+  .fact a { color: inherit; text-decoration: underline; text-decoration-color: var(--red); text-underline-offset: 3px; }
+  .cal { display: flex; gap: 8px; margin-top: 10px; flex-wrap: wrap; }
+  .cal a { text-decoration: none; padding: 6px 12px; border-radius: 999px; border: 1px solid var(--rule); background: var(--card-2);
+    color: var(--ink); font: 600 13px/1 var(--sans); letter-spacing: .06em; }
+  .cal a:active { background: var(--ink); color: var(--card); }
+
+  .ask { margin-top: 30px; text-align: center; }
+  .ask h2 { margin: 0; font: italic 400 26px/1 var(--fell); }
+  .fields { display: grid; gap: 10px; margin: 18px 0 4px; text-align: left; }
+  .fields input { width: 100%; padding: 13px 14px; border-radius: 10px; border: 1px solid rgba(28, 24, 20, .25); background: #fffaf0;
+    color: var(--ink); font: 400 17px var(--sans); outline: none; }
+  .fields input:focus { border-color: var(--red); box-shadow: 0 0 0 3px rgba(176, 28, 34, .15); }
 
   /* RSVP buttons are poker chips */
-  .chips { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 20px; }
-  .chip { appearance: none; border: 0; background: none; padding: 0; cursor: pointer; color: var(--ink-2); font: 500 14px/1.2 var(--sans);
-    display: flex; flex-direction: column; align-items: center; gap: 12px; -webkit-tap-highlight-color: transparent; transition: opacity .25s, color .25s; }
-  .chip i { position: relative; width: min(84px, 21vw); aspect-ratio: 1; border-radius: 50%; display: grid; place-items: center;
-    font: var(--ds) var(--dw) 26px/1 var(--display); color: var(--ink);
+  .chips { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin-top: 20px; }
+  .chip { appearance: none; border: 0; background: none; padding: 0; cursor: pointer; color: var(--ink-2);
+    font: 600 13px/1.2 var(--sans); letter-spacing: .14em; text-transform: uppercase;
+    display: flex; flex-direction: column; align-items: center; gap: 12px; -webkit-tap-highlight-color: transparent; transition: opacity .25s; }
+  .chip i { position: relative; width: min(82px, 21vw); aspect-ratio: 1; border-radius: 50%; display: grid; place-items: center;
+    font: normal 400 28px/1 var(--fell); color: #fff;
     background: radial-gradient(circle, var(--c) 0 56%, transparent 57%), repeating-conic-gradient(from 12deg, var(--edge) 0 16deg, var(--c) 16deg 45deg);
-    box-shadow: 0 0 0 2px var(--c), 0 12px 22px -8px #000, inset 0 2px 0 rgba(255, 255, 255, .12);
-    transition: transform .35s cubic-bezier(.3, 1.6, .5, 1), box-shadow .3s; }
-  .chip i::after { content: ""; position: absolute; inset: 24%; border-radius: 50%; border: 1.5px dashed rgba(244, 232, 210, .45); }
-  .chip:hover i { transform: translateY(-3px) rotate(-12deg); }
+    box-shadow: 0 0 0 2px var(--c), 0 6px 0 -1px var(--rim), 0 12px 18px -6px rgba(0, 0, 0, .45);
+    transition: transform .35s cubic-bezier(.3, 1.6, .5, 1); }
+  .chip i::after { content: ""; position: absolute; inset: 24%; border-radius: 50%; border: 1.5px dashed rgba(255, 255, 255, .5); }
   .chip:active i { transform: scale(.94); }
-  .going { --c: #a8231c; --edge: #f4e8d2; }
-  .maybe { --c: #2c5784; --edge: #f4e8d2; }
-  .no    { --c: #2a221d; --edge: #8a7a64; }
-  .picked .chip { opacity: .4; }
+  .going { --c: #b01c22; --edge: #f4eddd; --rim: #6e0f13; }
+  .maybe { --c: #24527e; --edge: #f4eddd; --rim: #15324e; }
+  .no    { --c: #24201c; --edge: #b9ab92; --rim: #000; }
+  .picked .chip { opacity: .35; }
   .picked .chip.on { opacity: 1; color: var(--ink); }
-  .chip.on i { transform: translateY(-6px) rotate(-18deg); box-shadow: 0 0 0 2px var(--c), 0 0 0 5px var(--bg), 0 0 0 7px var(--gold), 0 18px 30px -10px #000; }
-  .msg { min-height: 1.4em; margin-top: 20px; text-align: center; font: var(--ds) var(--dw) 18px/1.3 var(--display); color: var(--gold); }
-  .msg:empty { min-height: 0; margin: 0; }
-  .msg.err { color: var(--red-2); font: 500 14px/1.4 var(--sans); }
+  .chip.on i { transform: translateY(-6px) rotate(-16deg); }
+  .msg { margin-top: 18px; font: italic 400 20px/1.3 var(--fell); color: var(--red); }
+  .msg:empty { margin: 0; }
+  .msg.err { font: 500 15px/1.4 var(--sans); }
 
-  section { margin-top: 38px; }
-  .head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
-  .head h2 { margin: 0; font: var(--ds) var(--dw) 24px/1 var(--display); }
-  .people { display: grid; grid-template-columns: repeat(auto-fill, minmax(64px, 1fr)); gap: 18px 8px; margin-top: 18px; }
-  .person { display: flex; flex-direction: column; align-items: center; gap: 7px; min-width: 0; font-size: 12.5px; color: var(--ink-2); }
+  section { margin-top: 34px; }
+  .head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; padding-bottom: 10px; border-bottom: 1px solid var(--rule); }
+  .head h2 { margin: 0; font: italic 400 24px/1 var(--fell); }
+  .head span { color: var(--mute); font: 600 12px/1 var(--sans); letter-spacing: .16em; text-transform: uppercase; }
+  .people { display: grid; grid-template-columns: repeat(auto-fill, minmax(62px, 1fr)); gap: 16px 6px; margin-top: 16px; }
+  .person { display: flex; flex-direction: column; align-items: center; gap: 6px; min-width: 0; font: 500 14px/1.2 var(--sans); color: var(--ink-2); }
   .person span { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .av { width: 48px; height: 48px; border-radius: 50%; display: grid; place-items: center; color: var(--ink);
-    font: var(--ds) var(--dw) 20px/1 var(--display); background: var(--av); box-shadow: 0 0 0 2px var(--bg), 0 0 0 3px var(--line-2); }
-  .person.maybe .av { opacity: .6; }
-  .person.pending .av { background: transparent; color: var(--mute); box-shadow: none; border: 1.5px dashed var(--line-2); }
+  .av { width: 46px; height: 46px; border-radius: 50%; display: grid; place-items: center; color: #fff; font: 400 22px/1 var(--sc);
+    background: var(--av); box-shadow: 0 0 0 2px var(--card), 0 0 0 3px var(--rule); }
+  .person.maybe .av { opacity: .5; }
+  .person.pending .av { background: transparent; color: var(--mute); box-shadow: none; border: 1.5px dashed rgba(28, 24, 20, .3); }
   .person.pending { color: var(--mute); }
-  .host { margin-top: 44px; text-align: center; color: var(--mute); font-size: 11.5px; letter-spacing: .24em; text-transform: uppercase; }
+  .host { margin-top: 36px; text-align: center; font: italic 400 18px/1.3 var(--fell); color: var(--ink-2); }
 
-  .rise { animation: rise .8s cubic-bezier(.2, .8, .2, 1) both; animation-delay: calc(var(--i, 0) * 80ms); }
-  .settled .rise { animation: none; }
-  @keyframes rise { from { opacity: 0; transform: translateY(16px); } }
-  @media (prefers-reduced-motion: reduce) { .rise { animation: none; } .chip i { transition: none; } }
-  @media (min-width: 600px) { :root { --pad: 28px; } main { padding-top: 40px; } }
+  .rise { animation: rise .8s cubic-bezier(.2, .8, .2, 1) both; animation-delay: calc(var(--i, 0) * 70ms); }
+  @keyframes rise { from { opacity: 0; transform: translateY(14px); } }
+  @keyframes deal { from { opacity: 0; transform: translateY(40px) rotate(-3deg) scale(.97); } }
+  .card { animation: deal .9s cubic-bezier(.2, .8, .2, 1) both; }
+  .settled .rise, .settled .card { animation: none; }
+  @media (prefers-reduced-motion: reduce) { .rise, .card { animation: none; } .chip i { transition: none; } }
+  @media (min-width: 600px) { main { padding-top: 48px; } :root { --pad: 40px; } }
 </style>
 </head>
 <body>
-<main id="app"><p style="padding-top:40vh;text-align:center;color:var(--mute)">♠</p></main>
+<main id="app"></main>
 <script>
 const [, , slug, token] = location.pathname.split('/');
 const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 const CHIPS = { going: ["I'm in", '✓'], maybe: ['Maybe', '?'], no: ["Can't", '✕'] };
 const DONE = { going: "You're in. See you at the table.", maybe: 'Marked maybe. Change it any time.', no: "Sorry you'll miss it." };
-const AV = ['#7a2a22', '#2c5784', '#2f5b45', '#6b4a8a', '#8a6a2a', '#3d4f63', '#7a3d5a', '#4f6b2f'];
+const AV = ['#b01c22', '#24527e', '#2f5b3f', '#6a4a86', '#9a6a1e', '#3d4f63', '#8a3a5a', '#24201c'];
 const app = document.getElementById('app');
 
 const faces = (names, cls) => names.map(n => {
@@ -125,49 +129,61 @@ const faces = (names, cls) => names.map(n => {
   return `<div class="person ${cls}"><div class="av" style="--av:${AV[Math.abs(h) % AV.length]}">${esc(n[0] || '?')}</div><span>${esc(n.split(' ')[0])}</span></div>`;
 }).join('');
 
-function whenRow(e) {
-  if (!e.at) return `<div class="row"><div class="ico">♣</div><div class="big">${esc(e.starts)}</div></div>`;
+// Google takes wall-clock times plus ctz; Apple Calendar opens the .ics.
+function calLinks(e) {
+  const p = n => String(n).padStart(2, '0');
+  const fmt = d => `${d.getFullYear()}${p(d.getMonth() + 1)}${p(d.getDate())}T${p(d.getHours())}${p(d.getMinutes())}00`;
+  const start = new Date(e.at), end = new Date(start.getTime() + 3 * 3600e3);  // same fixed 3h block as the .ics
+  const g = 'https://calendar.google.com/calendar/render?' + new URLSearchParams({ action: 'TEMPLATE', text: e.title,
+    dates: `${fmt(start)}/${fmt(end)}`, ctz: 'America/New_York', location: e.address, details: location.href });
+  return `<div class="cal"><a href="${g}" target="_blank" rel="noopener">+ Google Calendar</a>
+    <a href="/api/e/${slug}/cal.ics?t=${encodeURIComponent(token)}">+ Apple Calendar</a></div>`;
+}
+
+function whenFact(e, me) {
+  if (!e.at) return `<div class="fact"><div class="k">When</div><div class="v">${esc(e.starts)}</div></div>`;
   const d = new Date(e.at);  // 'YYYY-MM-DDTHH:MM' parses as local time
-  const cal = token ? ` · <a href="/api/e/${slug}/cal.ics?t=${encodeURIComponent(token)}">add to calendar</a>` : '';
-  return `<div class="row"><div class="tile"><b>${d.toLocaleDateString('en-US', { month: 'short' }).toUpperCase()}</b><span>${d.getDate()}</span></div>
-    <div><div class="big">${d.toLocaleDateString('en-US', { weekday: 'long' })} · ${d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}</div>
-    <small>${d.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}${cal}</small></div></div>`;
+  return `<div class="fact"><div class="k">When</div><div>
+    <div class="v">${d.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}</div>
+    <small>${d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })} onward</small>${me ? calLinks(e) : ''}</div></div>`;
 }
 
 async function load() {
   const r = await fetch(`/api/e/${slug}` + (token ? `?t=${encodeURIComponent(token)}` : ''));
-  if (!r.ok) { app.innerHTML = '<p style="padding-top:40vh;text-align:center">This event link doesn\'t exist.</p>'; return; }
+  if (!r.ok) { app.innerHTML = '<div class="card"><h1>No such event</h1></div>'; return; }
   const { event: e, me, going, maybe, invited } = await r.json();
   document.title = e.title;
+  const rank = e.at ? new Date(e.at).getDate() : 'A';
   const where = e.address
-    ? `<div class="big"><a href="https://maps.apple.com/?q=${encodeURIComponent(e.address)}">${esc(e.address.split(',')[0])}</a></div><small>${esc(e.address.split(',').slice(1).join(',').trim() || 'Open in Maps')}</small>`
-    : `<div class="big">${esc(e.place || 'TBA')}</div><small>Address shown after you RSVP</small>`;
+    ? `<div class="v"><a href="https://maps.apple.com/?q=${encodeURIComponent(e.address)}">${esc(e.address.split(',')[0])}</a></div><small>${esc(e.address.split(',').slice(1).join(',').trim())}</small>`
+    : `<div class="v">${esc(e.place || 'TBA')}</div><small>Address shown after you RSVP</small>`;
   let i = 0; const rise = () => `rise" style="--i:${i++}`;
-  app.innerHTML = `
+  app.innerHTML = `<div class="card">
+    <div class="idx">${rank}<small>♦</small></div><div class="idx br">${rank}<small>♦</small></div>
     ${e.cover ? `<img class="cover ${rise()}" src="${esc(e.cover)}" alt="">` : ''}
-    <div class="eyebrow ${rise()}">${me ? `You're invited, ${esc(me.name.split(' ')[0])}` : "You're invited"}</div>
+    <div class="eyebrow ${rise()}">${me ? `${esc(me.name.split(' ')[0])}, you're invited` : "You're invited"}</div>
     <h1 class="${rise()}">${esc(e.title)}</h1>
-    <div class="brush ${rise()}"></div>
+    <div class="orn ${rise()}"><b>♠</b><b>♥</b><b>♣</b><b>♦</b></div>
     ${e.blurb ? `<p class="blurb ${rise()}">${esc(e.blurb)}</p>` : ''}
-    <div class="card ${rise()}">
-      ${whenRow(e)}
-      <div class="row"><div class="ico">♦</div><div>${where}</div></div>
-      <div class="perf"></div>
-      <div class="ask">
-        <div class="label">${me?.status ? 'Your answer' : 'Are you in?'}</div>
-        ${me ? '' : `<div class="fields"><input id="name" placeholder="Your name" autocomplete="name">
-          <input id="phone" placeholder="Phone number" type="tel" autocomplete="tel"></div>`}
-        <div class="chips ${me?.status ? 'picked' : ''}">${Object.entries(CHIPS).map(([k, [l, g]]) =>
-          `<button class="chip ${k} ${me?.status === k ? 'on' : ''}" onclick="send('${k}')"><i>${g}</i>${l}</button>`).join('')}</div>
-        <div id="msg" class="msg">${me?.status ? DONE[me.status] : ''}</div>
-      </div>
+    <div class="facts ${rise()}">
+      ${whenFact(e, me)}
+      <div class="fact"><div class="k">Where</div><div>${where}</div></div>
+    </div>
+    <div class="ask ${rise()}">
+      <h2>${me?.status ? 'Your answer' : 'Are you in?'}</h2>
+      ${me ? '' : `<div class="fields"><input id="name" placeholder="Your name" autocomplete="name">
+        <input id="phone" placeholder="Phone number" type="tel" autocomplete="tel"></div>`}
+      <div class="chips ${me?.status ? 'picked' : ''}">${Object.entries(CHIPS).map(([k, [l, g]]) =>
+        `<button class="chip ${k} ${me?.status === k ? 'on' : ''}" onclick="send('${k}')"><i>${g}</i>${l}</button>`).join('')}</div>
+      <div id="msg" class="msg">${me?.status ? DONE[me.status] : ''}</div>
     </div>
     ${going.length || maybe.length ? `<section class="${rise()}"><div class="head"><h2>At the table</h2>
-      <span class="label">${going.length} going${maybe.length ? ` · ${maybe.length} maybe` : ''}</span></div>
+      <span>${going.length} in${maybe.length ? ` · ${maybe.length} maybe` : ''}</span></div>
       <div class="people">${faces(going, '')}${faces(maybe, 'maybe')}</div></section>` : ''}
-    ${invited.length ? `<section class="${rise()}"><div class="head"><h2>Invited</h2><span class="label">${invited.length} haven't replied</span></div>
+    ${invited.length ? `<section class="${rise()}"><div class="head"><h2>Invited</h2><span>${invited.length} yet to reply</span></div>
       <div class="people">${faces(invited, 'pending')}</div></section>` : ''}
-    <div class="host ${rise()}">Hosted by David &amp; Stephanie</div>`;
+    ${e.host ? `<div class="host ${rise()}">Hosted by ${esc(e.host)}</div>` : ''}
+  </div>`;
 }
 
 async function send(status) {

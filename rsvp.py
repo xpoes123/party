@@ -162,11 +162,11 @@ async def admin_event(request: Request):
     if at and not re.fullmatch(r"\d{4}-\d\d-\d\dT\d\d:\d\d", at):
         raise HTTPException(400, "at must be YYYY-MM-DDTHH:MM")
     with closing(party.db()) as conn, conn:
-        conn.execute("""INSERT INTO events (slug, title, starts, place, blurb, at, address) VALUES (?, ?, ?, ?, ?, ?, ?)
-                        ON CONFLICT (slug) DO UPDATE SET title=excluded.title, starts=excluded.starts,
-                        place=excluded.place, blurb=excluded.blurb, at=excluded.at, address=excluded.address""",
+        conn.execute("""INSERT INTO events (slug, title, starts, place, blurb, at, address, host) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                        ON CONFLICT (slug) DO UPDATE SET title=excluded.title, starts=excluded.starts, place=excluded.place,
+                        blurb=excluded.blurb, at=excluded.at, address=excluded.address, host=excluded.host""",
                      (slug, b["title"].strip(), b.get("starts", ""), b.get("place", ""), b.get("blurb", ""),
-                      at, b.get("address", "")))
+                      at, b.get("address", ""), b.get("host", "")))
     return {"ok": True}
 
 
