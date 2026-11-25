@@ -44,7 +44,9 @@ const $ = id => document.getElementById(id);
 const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 const api = (p, o = {}) => fetch(p, { headers: H, ...o }).then(async r => r.ok ? r.json() : Promise.reject((await r.json()).detail));
 const post = (p, b) => api(p, { method: 'POST', body: JSON.stringify(b) });
-let contacts = [], invites = {}, tagFilter = new Set(), editing = null;
+let contacts = [], invites = {}, tagFilter = new Set(), editing = null, dupes = new Set();
+const nkey = c => c.name.toLowerCase().replace(/[^a-z]/g, '');
+const PSEUDO = { '(untagged)': c => !c.tags, '(hidden)': c => c.hidden, '(dupes)': c => dupes.has(nkey(c)) };
 const STATUS = { going: ['Going', 'ui-pill--ok'], maybe: ['Maybe', 'ui-pill--warn'], no: ["Can't", 'ui-pill--bad'], '': ['Invited ✓', 'ui-pill--info'] };
 
 async function init() {
@@ -63,14 +65,15 @@ async function loadInvites() {
 const tagsOf = c => c.tags ? c.tags.split(',') : [];
 
 function shown() {
-  const q = $('q').value.trim().toLowerCase();
-  return contacts.filter(c => ($('showHidden').checked || !c.hidden) && (!q || c.name.toLowerCase().includes(q))
-    && [...tagFilter].every(t => t === '(untagged)' ? !c.tags : tagsOf(c).includes(t)));
+  const q = $('q').value.trim().toLowerCase(), seen = new Set();
+  dupes = new Set(contacts.map(nkey).filter(k => seen.has(k) || !seen.add(k)));
+  return contacts.filter(c => ($('showHidden').checked || tagFilter.has('(hidden)') || !c.hidden) && (!q || c.name.toLowerCase().includes(q))
+    && [...tagFilter].every(t => PSEUDO[t] ? PSEUDO[t](c) : tagsOf(c).includes(t)));
 }
 
 function draw() {
   const all = [...new Set(contacts.flatMap(tagsOf))].sort();
-  $('tagbar').innerHTML = [...all, '(untagged)'].map(t => `<button class="ui-pill chip ${tagFilter.has(t) ? 'on' : ''}" data-t="${esc(t)}">${esc(t)}</button>`).join('');
+  $('tagbar').innerHTML = [...all, ...Object.keys(PSEUDO)].map(t => `<button class="ui-pill chip ${tagFilter.has(t) ? 'on' : ''}" data-t="${esc(t)}">${esc(t)}</button>`).join('');
   $('tagbar').querySelectorAll('button').forEach(b => b.onclick = () => { const t = b.dataset.t; tagFilter.has(t) ? tagFilter.delete(t) : tagFilter.add(t); draw(); });
   const list = shown(), nInv = Object.keys(invites).length;
   $('count').textContent = `${list.length} shown · ${nInv} invited`;
