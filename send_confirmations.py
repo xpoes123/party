@@ -8,6 +8,8 @@ import subprocess
 import time
 import urllib.request
 
+from discord_dm import dm
+
 MAC = "david@100.111.209.2"
 BASE = "https://party.djiang.xyz"
 # Messages silently drops a send it can't route (non-iMessage number, no SMS forwarding), so every send is
@@ -61,7 +63,11 @@ def main():
     post = lambda path, body=None: urllib.request.urlopen(urllib.request.Request(
         BASE + path, json.dumps(body or {}).encode(), {**h, "Content-Type": "application/json"}))
     for m in get("/admin/outbox"):
-        if delivered(m["phone"], m["text"]):
+        if m["phone"].startswith("@"):  # Discord guest invited as `Name, @<user id>`
+            dm(m["phone"][1:], m["text"])
+            post(f"/admin/outbox/{m['id']}/sent")
+            print(f"DMed {m['phone']}: {m['text']}")
+        elif delivered(m["phone"], m["text"]):
             post(f"/admin/outbox/{m['id']}/sent")
             print(f"sent {m['phone']}: {m['text']}")
         else:  # ponytail: retried every minute until it goes through; fine at party scale
