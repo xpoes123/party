@@ -43,7 +43,8 @@
 
   .cover { display: block; width: 100%; height: auto; border-radius: 6px;
     box-shadow: 0 0 0 1px rgba(28, 24, 20, .25), 0 0 0 5px var(--card), 0 0 0 6px var(--rule); }
-  .eyebrow { margin-top: 30px; text-align: center; color: var(--red); font: 600 17px/1.2 var(--sans); letter-spacing: .14em; text-transform: uppercase; }
+  .eyebrow { margin-top: 30px; text-align: center; color: var(--ink); font: 700 17px/1.2 var(--sans); letter-spacing: .14em; text-transform: uppercase; }
+  .eyebrow .who { display: inline-block; padding: 3px 9px 2px; margin-right: 2px; background: var(--red); color: #fff; border-radius: 3px; transform: rotate(-2deg); }
   h1 { margin: 12px 0 0; text-align: center; font: 400 clamp(42px, 12.5vw, 62px)/.95 var(--sc); letter-spacing: -.01em; text-wrap: balance; }
   .orn { display: flex; align-items: center; gap: 12px; margin: 18px auto 0; max-width: 300px; color: var(--ink-2); font-size: 14px; letter-spacing: .5em; }
   .orn::before, .orn::after { content: ""; flex: 1; height: 1px; background: var(--rule); }
@@ -136,6 +137,7 @@
   [data-theme="noir"] .av { box-shadow: 0 0 0 2px var(--card), 0 0 0 3px var(--rule); }
   [data-theme="noir"] .person.pending .av { border-color: rgba(236, 228, 214, .25); }
   [data-theme="noir"] .stamp { display: block; }
+  [data-theme="noir"] .eyebrow { font-size: 15px; letter-spacing: .04em; }
   /* noir RSVP buttons: evidence tags */
   .tg { position: relative; display: block; width: 100%; max-width: 104px; padding: 26px 6px 32px; color: #1a1412; background: #d8ccb2;
     clip-path: polygon(22% 0, 78% 0, 100% 20%, 100% 100%, 0 100%, 0 20%); font: 400 15px/1.2 var(--sans); letter-spacing: .04em; text-transform: none;
@@ -232,7 +234,7 @@ async function load() {
     <div class="idx">${rank}<small>${suit}</small></div><div class="idx br">${rank}<small>${suit}</small></div>
     <div class="stamp">CONFIDENTIAL</div>
     ${e.cover ? `<img class="cover ${rise()}" src="${esc(e.cover)}" alt="">` : ''}
-    <div class="eyebrow ${rise()}">${me ? esc(T.invited(me.name.split(' ')[0])) : "You're invited"}</div>
+    <div class="eyebrow ${rise()}">${me ? T.invited(`<b class="who">${esc(me.name.split(' ')[0])}</b>`) : "You're invited"}</div>
     <h1 class="${rise()}">${esc(e.title)}</h1>
     <div class="orn ${rise()}">${T.orn.map(o => `<b>${o}</b>`).join('')}</div>
     ${e.blurb ? `<p class="blurb ${rise()}">${esc(e.blurb)}</p>` : ''}
