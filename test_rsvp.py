@@ -110,6 +110,9 @@ def test():
     assert c.post("/admin/e/poker/invite", json={"lines": "Emily Yao, @Emily.Yao"}, headers=AK).json()["added"] == 1
     assert "Emily" in c.get("/api/e/poker").json()["invited"]
     assert all(not r["phone"].startswith("@") for r in c.get("/admin/e/poker/blast?to=all&msg=x", headers=AK).json())
+    emily = next(i for i in c.get("/admin/e/poker", headers=AK).json()["invites"] if i["name"] == "Emily Yao")
+    assert c.post("/api/e/poker/rsvp", json={"t": emily["token"], "status": "going", "name": "", "phone": "6305550555"}).status_code == 200
+    assert any(x["phone"] == "+16305550555" and x["name"] == "Emily Yao" and x["tags"] == "discord" for x in c.get("/admin/contacts", headers=AK).json())
 
     # +1s: only when the host allows one; the +1 is going, gets a link, and lands in contacts
     inv = {i["name"]: i for i in c.get("/admin/e/poker", headers=AK).json()["invites"]}
@@ -124,12 +127,13 @@ def test():
     assert c.post("/api/e/poker/plusone", json={"t": host["token"], "name": "Bo", "phone": "6305550333"}).status_code == 403
     assert {"phone": "+16305550222", "name": "Alex Q", "tags": "plus-one", "hidden": 0} in c.get("/admin/contacts", headers=AK).json()
 
-    # `Name, ?tag`: guest fills in their own number on first RSVP; no address until then
+    # `Name, ?tag`: guest may add their own number on RSVP (optional); a personal link always shows the address
     c.post("/admin/e/poker/invite", json={"lines": "Ryan, ?stephanie"}, headers=AK)
     ryan = next(i for i in c.get("/admin/e/poker", headers=AK).json()["invites"] if i["name"] == "Ryan")
     d = c.get(f"/api/e/poker?t={ryan['token']}").json()
-    assert d["me"]["needs_info"] and d["event"]["address"] == ""
-    assert c.post("/api/e/poker/rsvp", json={"t": ryan["token"], "status": "going"}).status_code == 400
+    assert d["me"]["needs_info"] and d["event"]["address"]
+    assert c.post("/api/e/poker/rsvp", json={"t": ryan["token"], "status": "maybe"}).status_code == 200
+    assert c.post("/api/e/poker/rsvp", json={"t": ryan["token"], "status": "going", "phone": "12"}).status_code == 400
     assert c.post("/api/e/poker/rsvp", json={"t": ryan["token"], "status": "going", "name": "Ryan O", "phone": "6305550222"}).status_code == 409
     assert c.post("/api/e/poker/rsvp", json={"t": ryan["token"], "status": "going", "name": "Ryan O", "phone": "6305550444"}).status_code == 200
     d = c.get(f"/api/e/poker?t={ryan['token']}").json()
