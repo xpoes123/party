@@ -20,8 +20,12 @@ end run"""
 
 
 def mac(script: str, *args: str) -> bool:
-    r = subprocess.run(["ssh", "-o", "BatchMode=yes", "-o", "ConnectTimeout=8", MAC, "osascript - " + shlex.join(args)],
-                       input=script, text=True, capture_output=True)
+    try:
+        r = subprocess.run(["ssh", "-o", "BatchMode=yes", "-o", "ConnectTimeout=8", MAC, "osascript - " + shlex.join(args)],
+                           input=script, text=True, capture_output=True, timeout=90)
+    except subprocess.TimeoutExpired:  # e.g. macOS waiting on an "allow access" prompt
+        print(f"mac timed out {args[0]}")
+        return False
     if r.returncode:
         print(f"mac failed {args[0]}: {r.stderr.strip()}")
     return not r.returncode
