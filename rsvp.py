@@ -1,6 +1,7 @@
 """Event RSVPs (Partiful-lite). Phone number is the guest identity; no login.
 See docs/superpowers/specs/2026-11-24-event-rsvp-design.md."""
 import base64
+import html
 import os
 import re
 import secrets
@@ -81,8 +82,22 @@ def events():
 
 @router.get("/e/{slug}")
 @router.get("/e/{slug}/{token}")
-def page(slug: str, token: str = ""):
-    return FileResponse(os.path.join(party.STATIC, "rsvp.html"), headers={"Cache-Control": "no-store"})
+def page(slug: str, request: Request, token: str = ""):
+    """The guest page, with link-preview tags so iMessage/Discord show the flyer, title and date."""
+    with open(os.path.join(party.STATIC, "rsvp.html")) as f:
+        html_ = f.read()
+    with closing(party.db()) as conn:
+        ev = conn.execute("SELECT * FROM events WHERE slug=?", (slug,)).fetchone()
+    if ev:
+        base = (PUBLIC_URL or str(request.base_url)).rstrip("/")
+        when = datetime.strptime(ev["at"], "%Y-%m-%dT%H:%M").strftime("%a %b %-d · %-I:%M %p") if ev["at"] else ev["starts"]
+        meta = [("og:title", ev["title"]), ("og:description", f"You're invited · {when}" if when else "You're invited"),
+                ("og:site_name", "party.djiang.xyz"), ("og:type", "website")]
+        if ev["cover"]:
+            meta.append(("og:image", base + ev["cover"]))
+        tags = "".join(f'<meta property="{k}" content="{html.escape(v)}">\n' for k, v in meta)
+        html_ = html_.replace("<title>RSVP</title>", f"<title>{html.escape(ev['title'])}</title>\n{tags}", 1)
+    return Response(html_, media_type="text/html", headers={"Cache-Control": "no-store"})
 
 
 @router.get("/api/e/{slug}")

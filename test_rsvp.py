@@ -153,7 +153,8 @@ def test():
 
     # unknown event
     assert c.get("/api/e/nope").status_code == 404
-    assert c.get("/e/poker").status_code == 200
+    page = c.get("/e/poker").text
+    assert '<meta property="og:title" content="Poker night">' in page and 'og:image' in page
     assert c.get("/").status_code == 200 and c.get("/music").status_code == 200
     assert [e["slug"] for e in c.get("/api/events").json()] == ["poker"]
     print("ok")
