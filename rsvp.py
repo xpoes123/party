@@ -344,7 +344,7 @@ def outbox(request: Request):
         for r in rows:
             when = datetime.strptime(r["at"], "%Y-%m-%dT%H:%M").strftime("%a %b %-d at %-I:%M %p") if r["at"] else r["starts"]
             out.append({"id": r["id"], "phone": r["phone"], "text":
-                        f"[Automated message] RSVP confirmed: {r['name'].split()[0]}, you're coming to {r['title']} "
+                        f"[Auto] RSVP confirmed: {r['name'].split()[0]}, you're coming to {r['title']} "
                         f"on {when}" + (f" at {r['address']}" if r["address"] else "") +
                         f". To change your answer: {base}/e/{r['slug']}/{r['token']}"})
         return out
