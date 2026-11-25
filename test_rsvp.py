@@ -137,6 +137,13 @@ def test():
     assert any(x["phone"] == "+16305550444" and x["tags"] == "stephanie" for x in c.get("/admin/contacts", headers=AK).json())
     assert all(not r["phone"].startswith("?") for r in c.get("/admin/e/poker/blast?to=all&msg=x", headers=AK).json())
 
+    # confirmation outbox: real phones that said going, once each
+    box = c.get("/admin/outbox", headers=AK).json()
+    assert box and all(m["phone"].startswith("+") and "you're coming to" in m["text"] for m in box)
+    c.post(f"/admin/outbox/{box[0]['id']}/sent", headers=AK)
+    assert box[0]["id"] not in [m["id"] for m in c.get("/admin/outbox", headers=AK).json()]
+    assert c.get("/admin/outbox").status_code == 403
+
     # unknown event
     assert c.get("/api/e/nope").status_code == 404
     assert c.get("/e/poker").status_code == 200
