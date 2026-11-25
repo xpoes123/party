@@ -191,7 +191,7 @@ async def admin_cover(slug: str, request: Request):
 
 @router.post("/admin/e/{slug}/invite")
 async def admin_invite(slug: str, request: Request):
-    """Paste `Name, phone` lines. Same phone twice = one invite."""
+    """Paste `Name, phone` lines, or `Name, @discord` for people without a number. Same phone twice = one invite."""
     party.require_admin(request)
     lines = (await request.json()).get("lines", "")
     added, skipped = 0, []
@@ -199,7 +199,9 @@ async def admin_invite(slug: str, request: Request):
         _event(conn, slug)
         for line in filter(None, (l.strip() for l in lines.splitlines())):
             name, _, raw = line.rpartition(",")
-            phone = norm_phone(raw)
+            raw = raw.strip()
+            # ponytail: Discord guests reuse the phone column as their unique key; you DM them the link yourself
+            phone = raw.lower() if re.fullmatch(r"@[\w.]{2,32}", raw) else norm_phone(raw)
             if not name.strip() or not phone:
                 skipped.append(line)
                 continue
@@ -272,7 +274,7 @@ def blast(slug: str, request: Request, msg: str, to: str = "pending"):
     base = (PUBLIC_URL or str(request.base_url)).rstrip("/")
     with closing(party.db()) as conn:
         _event(conn, slug)
-        rows = conn.execute(f"SELECT name, phone, token FROM invites WHERE slug=? {where[to]} ORDER BY name", (slug,))
+        rows = conn.execute(f"SELECT name, phone, token FROM invites WHERE slug=? AND phone NOT LIKE '@%' {where[to]} ORDER BY name", (slug,))
         return [{"name": r["name"], "phone": r["phone"],
                  "text": msg.replace("{name}", r["name"].split()[0]).replace("{link}", f"{base}/e/{slug}/{r['token']}")}
                 for r in rows]

@@ -106,6 +106,11 @@ def test():
     c.post("/admin/e/poker/invite", json={"lines": "Geoff Wu, 6305550111"}, headers=AK)
     assert c.get("/api/e/poker").json()["invited"] == ["Geoff"]
 
+    # Discord guests: @handle instead of a phone; listed as invited, never in the text blast
+    assert c.post("/admin/e/poker/invite", json={"lines": "Emily Yao, @Emily.Yao"}, headers=AK).json()["added"] == 1
+    assert "Emily" in c.get("/api/e/poker").json()["invited"]
+    assert all(not r["phone"].startswith("@") for r in c.get("/admin/e/poker/blast?to=all&msg=x", headers=AK).json())
+
     # unknown event
     assert c.get("/api/e/nope").status_code == 404
     assert c.get("/e/poker").status_code == 200
