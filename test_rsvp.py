@@ -85,6 +85,12 @@ def test():
     assert cal.status_code == 200 and "DTSTART;TZID=America/New_York:20261204T200000" in cal.text
     assert "DTEND;TZID=America/New_York:20261204T230000" in cal.text and "1 Main St" in cal.text
     assert c.get("/api/e/poker/cal.ics?t=nope").status_code == 404
+    # `ends` sets the calendar end; past midnight rolls to the next day
+    ev = c.get("/admin/events/list", headers=AK).json()[0]
+    assert c.post("/admin/event", json={**ev, "ends": "9pm"}, headers=AK).status_code == 400
+    c.post("/admin/event", json={**ev, "ends": "01:30"}, headers=AK)
+    assert "DTEND;TZID=America/New_York:20261205T013000" in c.get(f"/api/e/poker/cal.ics?t={sam}").text
+    c.post("/admin/event", json={**ev, "ends": ""}, headers=AK)
     png = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg=="
     assert c.post("/admin/e/poker/cover", json={"data": png}).status_code == 403
     assert c.post("/admin/e/poker/cover", json={"data": "data:text/html;base64,PGI+"}, headers=AK).status_code == 400

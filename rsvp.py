@@ -63,6 +63,14 @@ def _claim_phone(conn, slug: str, body: dict) -> tuple[str, str]:
     return name, phone
 
 
+def _end(ev, begin: datetime) -> datetime:
+    """Event end: `ends` (HH:MM, rolls past midnight), else a 3h block."""
+    if not ev["ends"]:
+        return begin + timedelta(hours=3)
+    end = datetime.combine(begin.date(), datetime.strptime(ev["ends"], "%H:%M").time())
+    return end if end > begin else end + timedelta(days=1)
+
+
 def _uploads() -> str:
     path = os.path.join(os.path.dirname(party.DB), "uploads")
     os.makedirs(path, exist_ok=True)
@@ -127,7 +135,7 @@ def ics(slug: str, t: str = ""):
     if not ev["at"]:
         raise HTTPException(404, "no time set yet")
     begin = datetime.strptime(ev["at"], "%Y-%m-%dT%H:%M")
-    start, end = (d.strftime("%Y%m%dT%H%M%S") for d in (begin, begin + timedelta(hours=3)))  # ponytail: fixed 3h block
+    start, end = (d.strftime("%Y%m%dT%H%M%S") for d in (begin, _end(ev, begin)))
     base = (PUBLIC_URL or "").rstrip("/")
     body = "\r\n".join([
         "BEGIN:VCALENDAR", "VERSION:2.0", "PRODID:-//party//rsvp//EN", "BEGIN:VEVENT",
@@ -237,12 +245,15 @@ async def admin_event(request: Request):
     at = b.get("at", "")
     if at and not re.fullmatch(r"\d{4}-\d\d-\d\dT\d\d:\d\d", at):
         raise HTTPException(400, "at must be YYYY-MM-DDTHH:MM")
+    ends = b.get("ends", "")
+    if ends and not re.fullmatch(r"([01]\d|2[0-3]):[0-5]\d", ends):
+        raise HTTPException(400, "ends must be HH:MM")
     with closing(party.db()) as conn, conn:
-        conn.execute("""INSERT INTO events (slug, title, starts, place, blurb, at, address, host, theme) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+        conn.execute("""INSERT INTO events (slug, title, starts, place, blurb, at, address, host, theme, ends) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                         ON CONFLICT (slug) DO UPDATE SET title=excluded.title, starts=excluded.starts, place=excluded.place,
-                        blurb=excluded.blurb, at=excluded.at, address=excluded.address, host=excluded.host, theme=excluded.theme""",
+                        blurb=excluded.blurb, at=excluded.at, address=excluded.address, host=excluded.host, theme=excluded.theme, ends=excluded.ends""",
                      (slug, b["title"].strip(), b.get("starts", ""), b.get("place", ""), b.get("blurb", ""),
-                      at, b.get("address", ""), b.get("host", ""), b.get("theme", "")))
+                      at, b.get("address", ""), b.get("host", ""), b.get("theme", ""), ends))
     return {"ok": True}
 
 
