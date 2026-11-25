@@ -92,9 +92,9 @@ def public(slug: str, t: str = ""):
         me = None
         if row:
             guests = [r["name"] for r in conn.execute("SELECT name FROM invites WHERE via=? ORDER BY id", (row["id"],))]
-            me = {"name": row["name"], "status": row["status"], "needs_info": row["phone"].startswith("?"),
+            me = {"name": row["name"], "status": row["status"], "needs_info": row["phone"][0] in "?@",
                   "plus_left": max(row["plus"] - len(guests), 0), "guests": guests}
-        if not me or me["needs_info"]:  # the open link is shareable; the address is for invited people only
+        if not me:  # the open link is shareable; the address is for invited people only
             ev["address"] = ""
         return {"event": ev, "me": me, "going": _going(conn, slug),
                 "maybe": _going(conn, slug, "maybe"), "invited": _going(conn, slug, "")}
@@ -142,10 +142,13 @@ async def rsvp(slug: str, request: Request):
             row = conn.execute("SELECT * FROM invites WHERE slug=? AND token=?", (slug, body["t"])).fetchone()
             if not row:
                 raise HTTPException(404, "unknown invite link")
-            if row["phone"].startswith("?"):  # name-only invite: the guest fills in their own number once
-                name, phone = _claim_phone(conn, slug, body)
-                conn.execute("UPDATE invites SET name=?, phone=? WHERE id=?", (name, phone, row["id"]))
-                _remember(conn, phone, name, row["source"].removeprefix("ask:"))
+            if row["phone"][0] in "?@":  # invited without a number: name is editable, phone optional
+                name = (body.get("name") or "").strip()[:60] or row["name"]
+                conn.execute("UPDATE invites SET name=? WHERE id=?", (name, row["id"]))
+                if (body.get("phone") or "").strip():
+                    _, phone = _claim_phone(conn, slug, {**body, "name": name})
+                    conn.execute("UPDATE invites SET phone=? WHERE id=?", (phone, row["id"]))
+                    _remember(conn, phone, name, "discord" if row["phone"][0] == "@" else row["source"].removeprefix("ask:"))
             conn.execute("UPDATE invites SET status=?, updated=? WHERE id=?", (status, now, row["id"]))
             return {"ok": True, "token": body["t"]}
         name, phone = _claim_phone(conn, slug, body)

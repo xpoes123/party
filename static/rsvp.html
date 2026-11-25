@@ -221,7 +221,7 @@ async function load() {
   const { event: e, me, going, maybe, invited } = await r.json();
   ME = me;
   useTheme(e.theme);
-  const ask = !me || me.needs_info;  // open link, or a name-only invite that fills in its own number
+  const ask = !me || me.needs_info;  // open link (number required), or invited without a number (optional)
   document.title = e.title;
   const [rank, suit] = T.idx(e.at ? new Date(e.at) : null);
   const where = e.address
@@ -243,7 +243,7 @@ async function load() {
     <div class="ask ${rise()}">
       <h2>${me?.status ? 'Your answer' : 'Are you in?'}</h2>
       ${ask ? `<div class="fields"><input id="name" placeholder="Your full name" autocomplete="name" value="${esc(me?.name || '')}">
-        <input id="phone" placeholder="Phone number" type="tel" autocomplete="tel"></div>` : ''}
+        <input id="phone" placeholder="${me ? 'Phone (optional, for a confirmation text)' : 'Phone number'}" type="tel" autocomplete="tel"></div>` : ''}
       <div class="chips ${me?.status ? 'picked' : ''}">${Object.entries(CHIPS).map(([k, [l, g]]) =>
         `<button class="chip ${k} ${me?.status === k ? 'on' : ''}" onclick="send('${k}')">${T.button(k, l, g)}</button>`).join('')}</div>
       <div id="msg" class="msg">${me?.status ? T.done[me.status] : ''}</div>
