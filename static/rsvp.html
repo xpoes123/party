@@ -277,7 +277,7 @@ async function load() {
       ${me.guests.map(g => `<div class="v">+1 · ${esc(g)} <small>on the list</small></div>`).join('')}
       ${me.plus_left && !me.needs_info ? `<h2>Bringing someone?</h2><div class="fields"><input id="pname" placeholder="Their name">
         <input id="pphone" placeholder="Their phone number" type="tel"></div>
-        <button class="pbtn" onclick="addPlus()">Add my +1</button>` : ''}
+        <button class="pbtn" onclick="addPlus()">Add my +1</button>` : me.plus_left ? `<div class="v">You can bring a +1. Add them here after you RSVP.</div>` : ''}
       <div id="pmsg" class="msg"></div></div>` : ''}
     ${going.length || maybe.length ? `<section class="${rise()}"><div class="head"><h2>${T.table}</h2>
       <span>${going.length} in${maybe.length ? ` · ${maybe.length} maybe` : ''}</span></div>
